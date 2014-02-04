@@ -16,7 +16,7 @@ class PHP_Over implements Countable, Iterator
   const ERROR_NUMBER_OF_TYPES          = 0x2;
   const ERROR_TYPE_MISMATCH            = 0x3;
   const ERROR_OVERLOAD_EXISTS          = 0x4;
-  const ERROR_OVERLOAD_NAME            = 0x5;
+  const ERROR_CALL_TO_UNDEFINED_METHOD = 0x5;
   const ERROR_OVERRIDE_FUNC_NOT_EXISTS = 0x6;
   const ERROR_OVERRIDE_ARRAY_MISSING   = 0x7;
   const ERROR_REMOVE_BOOL_MISSING      = 0x8;
@@ -33,7 +33,7 @@ class PHP_Over implements Countable, Iterator
               2 => 'Количество аргументов перегруженной функции не соответствует количеству указанных типов',
               3 => 'Аргумент перегруженной функции ожидает получить тип не соответствующий указанному типу',
               4 => 'Перегруженная функция была определена ранее',
-              5 => 'Псевдоним перегруженной функции типа NULL',
+              5 => 'Вызов неопределенного метода',
               6 => 'Переопределение функции невозможно. Перегруженная функция не найдена',
               7 => 'Переопределение функции невозможно. Ожидает получить массив содержащий значения типов',
               8 => 'Удаление функции невозможно. Ожидает получить булев тип',
@@ -90,12 +90,12 @@ class PHP_Over implements Countable, Iterator
     return $this->_initOverride($callable_or_strict_match, $fixedData, true);
   }
   
-  public function invoke()
+  public function invokeTo()
   {
     return $this->_initInvoke(func_get_args());
   }
   
-  public function invokeArgs(array $arguments = null)
+  public function invokeArgsTo(array $arguments = null)
   {
     return $this->_initInvoke(( array )$arguments);
   }
@@ -507,30 +507,51 @@ class PHP_Over implements Countable, Iterator
     return $data;
   }
   
-  static public function load($alias_of_function, array $types_of_function_arguments, callable $callable)
+  static public function __callStatic($name, $arguments)
+  {
+    if (method_exists(__CLASS__, $name))
+    {
+      $method=new ReflectionMethod(__CLASS__, $name);
+      if ($method->isProtected())
+      {
+        return call_user_func_array("self::$name", $arguments);
+      }
+    }
+    self::getInstance()->__call($name, null);
+  }
+  
+  function __call($name, $arguments)
+  {
+    throw new BadMethodCallException(
+            $this->_error_msg[ self::ERROR_CALL_TO_UNDEFINED_METHOD ] . ' ' . __CLASS__ . "::$name()");
+  }
+  
+  static protected function load($alias_of_function, array $types_of_function_arguments, callable $callable)
   {
     $hash = self::_fetchHash($alias_of_function);
     $fixedData = self::getInstance()->_getFixedData($types_of_function_arguments, $hash);
     return self::getInstance()->_initOverload($callable, $fixedData);
   }
   
-  static public function ride($alias_of_function, array $types_of_function_arguments = null, $callable_or_strict_match = null)
+  static protected function ride($alias_of_function, array $types_of_function_arguments = null, $callable_or_strict_match = null)
   {
     $hash = self::_fetchHash($alias_of_function);
     $is_array = $types_of_function_arguments===null ? false : true;
-    $fixedData = $this->_getFixedData(( array )$types_of_function_arguments, $hash);
-    
+    $fixedData = self::getInstance()->_getFixedData(( array )$types_of_function_arguments, $hash);
     return self::getInstance()->_initOverride($callable_or_strict_match, $fixedData, $is_array);
   }
   
-  static public function invokeTo($alias_of_function)
+  static protected function invoke($alias_of_function)
   {
-    ;
+    $hash = self::_fetchHash($alias_of_function);
+    $args = array_slice(func_get_args(), 1);
+    return self::getInstance()->_initInvoke($args, $hash);
   }
   
-  static public function invokeToArgs($alias_of_function, array $arguments = null)
+  static protected function invokeArgs($alias_of_function, array $arguments = null)
   {
-    ;
+    $hash = self::_fetchHash($alias_of_function);
+    return self::getInstance()->_initInvoke(( array )$arguments, $hash);
   }
   
   static private function getInstance()
@@ -576,7 +597,7 @@ class PHP_Over implements Countable, Iterator
     return self::$_list_of_hashes[ $string ];
   }
   
-  function debug()
+  function debugTo()
   {
     echo "\npointers\n";
     print_r( $this->_pointers_to_overloaded_function );
@@ -584,6 +605,17 @@ class PHP_Over implements Countable, Iterator
     
     echo "\nreflections\n";
     print_r( $this->_reflections_of_overloaded_functions );
+    echo nl2br(str_repeat('+', 70) . PHP_EOL . PHP_EOL);
+  }
+  
+  static function debug()
+  {
+    echo "\npointers\n";
+    print_r( self::getInstance()->_pointers_to_overloaded_function );
+    echo nl2br(str_repeat('+', 70) . PHP_EOL . PHP_EOL);
+    
+    echo "\nreflections\n";
+    print_r( self::getInstance()->_reflections_of_overloaded_functions );
     echo nl2br(str_repeat('+', 70) . PHP_EOL . PHP_EOL);
   }
 }
