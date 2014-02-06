@@ -68,6 +68,11 @@ class PHP_Over
             $this->_error_msg[ self::ERROR_CALL_TO_UNDEFINED_METHOD ] . ' ' . __CLASS__ . "::$name()");
   }
   
+  public function __invoke()
+  {
+    return $this->_initInvoke(func_get_args());
+  }
+  
   /**
    * Метод регестрирует функцию, которая должна быть перегружена в процессе 
    * вызова, по заданному количеству и типам аргументов.
