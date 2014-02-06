@@ -5,7 +5,7 @@
  * @author John Doe <lubaev.ka@gmail.com>
  * @copyright (c) 2014, L Kirill
  */
-class PHP_Over implements Countable, Iterator
+class PHP_Over
 {
   const TYPE_RESOURCE = 'resource';
   const TYPE_BOOLEAN  = 'boolean';
@@ -68,45 +68,6 @@ class PHP_Over implements Countable, Iterator
   {
     throw new BadMethodCallException(
             $this->_error_msg[ self::ERROR_CALL_TO_UNDEFINED_METHOD ] . ' ' . __CLASS__ . "::$name()");
-  }
-  
-  /**
-   * Метод count(), реализуемый от интерфейса Countable, подсчитывает количество
-   * зарегестрированных перегруженных функций в объекте.
-   * 
-   * @return int Возвращает количество зарегестрированных перегруженных функций
-   * в объекте.
-   */
-  public function count()
-  {
-    return count(
-            $this->_findPointers(
-                    $this->_pointers_to_overloaded_function));
-  }
-  
-  public function current()
-  {
-    ;
-  }
-
-  public function key()
-  {
-    ;
-  }
-
-  public function next()
-  {
-    ;
-  }
-
-  public function rewind()
-  {
-    ;
-  }
-
-  public function valid()
-  {
-    ;
   }
   
   /**
@@ -232,9 +193,16 @@ class PHP_Over implements Countable, Iterator
     $parameters = $reflection_func->getParameters();
     for ($fixedData->rewind(); $fixedData->valid(); $fixedData->next())
     {
-      if ( ! ($this->_compareExpectedType($parameters[ $fixedData->key() ], $fixedData->current())) )
+      $parameter = $parameters[ $fixedData->key() ];
+      
+      if ( ! ($this->_compareExpectedType($parameter, $fixedData->current())) )
       {
         throw new DomainException( $this->_error_msg[ self::ERROR_TYPE_MISMATCH ] );
+      }
+      
+      if ($parameter->isPassedByReference())
+      {
+        $reflection_data['ByRef'][] = $parameter->getPosition();
       }
     }
     
@@ -297,12 +265,15 @@ class PHP_Over implements Countable, Iterator
    */
   private function _initInvoke(array $arguments, $hash = null)
   {
+    $arguments = array_values( $arguments );
+    
     $i = count($arguments);
     while ( $i-- && $arguments[ $i ]===null )
     {
       array_splice($arguments, $i, 1);
     }
     
+    $types_of_function_arguments = array();
     $i += 1;
     while ( $i-- )
     {
@@ -316,6 +287,14 @@ class PHP_Over implements Countable, Iterator
     {
       $reflection_data = $this->_reflections_of_overloaded_functions->offsetGet($pointer_id);
       $reflection_func = $reflection_data[0];
+      
+      if (isset( $reflection_data['ByRef'] ))
+      {
+        foreach ($reflection_data['ByRef'] as $num)
+        {
+          $arguments[ $num ] =& $arguments[ $num ];
+        }
+      }
       
       return ( $reflection_func instanceof ReflectionMethod )
           ? $reflection_func->invokeArgs( $reflection_data[1], $arguments )
@@ -375,7 +354,8 @@ class PHP_Over implements Countable, Iterator
     // Удалить все перегруженные функции с заданным псевдонимом.
     if ( ! $types_is_array)
     {
-      $pointers_id = $this->_deletePointer($fixedData, $ref_pointers);
+      $pointers_id = $this->_findPointers($ref_pointers);
+      unset($this->_pointers_to_overloaded_function[ $fixedData->hash ]);
     }
     else
     {
