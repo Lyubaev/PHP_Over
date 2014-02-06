@@ -1,9 +1,10 @@
 ﻿<?php 
 /**
+ * Класс PHP_Over
  * 
- * 
- * @author John Doe <lubaev.ka@gmail.com>
- * @copyright (c) 2014, L Kirill
+ * @license MIT
+ * @author Lyubaev Kirill <lubaev.ka@gmail.com>
+ * @copyright (c) 2014, Lyubaev Kirill
  */
 class PHP_Over
 {
@@ -44,9 +45,6 @@ class PHP_Over
               8 => 'Удаление функции невозможно. Ожидает получить булев тип',
               9 => 'Обращение к неопределенной функции');
   
-  /**
-   * 
-   */
   public function __construct()
   {
     $this->_number_of_pointers = 0;
@@ -257,11 +255,14 @@ class PHP_Over
   }
   
   /**
+   * Метод инициирует вызов перегруженной функции.
    * 
-   * @param array $arguments
-   * @param type $hash
-   * @return type
-   * @throws BadFunctionCallException
+   * @param array $arguments Передаваемые в функцию параметры в виде массива.
+   * @param string $hash Хэш псевдонима перегружаемой функции.
+   * Только в статическом вызове. 
+   * @return mixed Возвращает результат перегруженной функции.
+   * @throws BadFunctionCallException Будет выброшено исключение, если:
+   *         1). Функция не будет найдена.
    */
   private function _initInvoke(array $arguments, $hash = null)
   {
