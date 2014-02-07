@@ -182,6 +182,14 @@ class PHP_Over
   {
     $param = func_get_args();
     $callable_or_strict_match = array_pop($param);
+    
+    if ( ! is_callable($callable_or_strict_match)  && 
+           ( is_array( $callable_or_strict_match ) || is_string( $callable_or_strict_match ) ))
+    {
+      $param[] = $callable_or_strict_match;
+      $callable_or_strict_match = true;
+    }
+    
     $types_of_function_arguments = $param;
     
     if (isset($param[0]) && is_array( $param[0] ))
@@ -727,7 +735,7 @@ class PHP_Over
     $size = count($fixedData);
     $ret = array();
     
-    while ($size)
+    do
     {
       $fixedData->rewind();
       while ($size > $fixedData->key())
@@ -763,9 +771,13 @@ class PHP_Over
         }
       }
       
+      if (isset($fixedData[ --$size ]))
+      {
+        $last_value = $fixedData[ $size ];
+      }
       $container =& $ref_container;
-      $last_value = $fixedData[ --$size ];
-    }
+      
+    } while( $size > 0 );
     
     if (isset( $last_value ) && (1 > count( $container[ $last_value ] )))
     {
