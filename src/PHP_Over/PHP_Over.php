@@ -18,15 +18,18 @@ class PHP_Over
   
   const POINTER = '*Pointer id #';
   
-  const ERROR_IS_OPTIONAL_ARG          = 0x1;
-  const ERROR_NUMBER_OF_TYPES          = 0x2;
-  const ERROR_TYPE_MISMATCH            = 0x3;
-  const ERROR_OVERLOAD_EXISTS          = 0x4;
-  const ERROR_CALL_TO_UNDEFINED_METHOD = 0x5;
-  const ERROR_OVERRIDE_FUNC_NOT_EXISTS = 0x6;
-  const ERROR_OVERRIDE_ARRAY_MISSING   = 0x7;
-  const ERROR_REMOVE_BOOL_MISSING      = 0x8;
-  const ERROR_OVERLOAD_UNDEFINED       = 0x9;
+  const ERROR_IS_OPTIONAL_ARG           = 0x1;
+  const ERROR_NUMBER_OF_TYPES           = 0x2;
+  const ERROR_TYPE_MISMATCH             = 0x3;
+  const ERROR_OVERLOAD_EXISTS           = 0x4;
+  const ERROR_CALL_TO_UNDEFINED_METHOD  = 0x5;
+  const ERROR_OVERRIDE_FUNC_NOT_EXISTS  = 0x6;
+  const ERROR_OVERRIDE_ARRAY_MISSING    = 0x7;
+  const ERROR_REMOVE_BOOL_MISSING       = 0x8;
+  const ERROR_OVERLOAD_UNDEFINED        = 0x9;
+  const ERROR_OVERLOAD_CALLABLE_MISSING = 0xA;
+  const ERROR_OVERLOAD_STRING_MISSING   = 0xB;
+  const ERROR_ARGUMENTS_LIST            = 0xC;
   
   static private $_instance,
                  $_list_of_hashes;
@@ -43,7 +46,11 @@ class PHP_Over
               6 => 'Переопределение функции невозможно. Перегруженная функция не найдена',
               7 => 'Переопределение функции невозможно. Ожидает получить массив содержащий значения типов',
               8 => 'Удаление функции невозможно. Ожидает получить булев тип',
-              9 => 'Обращение к неопределенной функции');
+              9 => 'Обращение к неопределенной функции',
+             10 => 'Регистрация функции невозможна. Ожидает получить значение типа "callable"',
+             11 => 'Список аргуметов определяющих тип, должен быть типа "string"',
+             12 => 'Некорректный список аргументов метода',
+             );
   
   public function __construct()
   {
@@ -68,24 +75,63 @@ class PHP_Over
             $this->_error_msg[ self::ERROR_CALL_TO_UNDEFINED_METHOD ] . ' ' . __CLASS__ . "::$name()");
   }
   
-  public function __invoke()
-  {
-    return $this->_initInvoke(func_get_args());
-  }
-  
   /**
-   * Метод регестрирует функцию, которая должна быть перегружена в процессе 
-   * вызова, по заданному количеству и типам аргументов.
+   * Метод регестрирует функцию, которая должна быть вызвана и выполнена как
+   * перегруженная функция, по заданному количеству и типам аргументов.
    * 
-   * @param string[] $types_of_function_arguments Массив, содержащий значения 
-   * типов для аргументов перегруженной функции. 
-   * Порядок значений в массиве соответствует порядку аргументов перегруженной 
-   * функции.
+   * Значения ожидаемых типов для аргументов могут быть следуюущими:
+   * string | %s | integer | int | %i | double | %d | float | %f | real
+   * boolean | bool | %b | array | %a | object | %o | resource | %r
+   * 
+   * <samp>
+   * <p>Пример:</p>
+   * overload($callable);<br />
+   * overload(['int'[,'string'[,...]]] $callable);<br />
+   * overload([array('int'),] $callable);<br />
+   * </samp>
+   * 
+   * @method true overload(callable $callable) Регестрирует функцию, которая
+   * должна быть вызвана и выполнена как перегруженная функция без аргументов.
+   * @method true overload(string $type, callable $callable) Регестрирует 
+   * функцию, которая должна быть вызвана и выполнена как перегруженная функция
+   * по заданному количеству и типам аргументов, которые перечислены в качестве
+   * параметоров вызова.
+   * @method true overload(array $types, callable $callable) Регестрирует 
+   * функцию, которая должна быть вызвана и выполнена как перегруженная функция
+   * по заданному количеству и типам аргументов, которые перечислены в массиве,
+   * указанном в первом параметре вызова.
+   * @param array|string $types Массив, либо ноль и 
+   * более параметров содержащий значения ожидаемого типа для аргументов функции,
+   * которая должна быть выполнена как перегруженная.
    * @param callable $callable Значение, которое может быть вызвано.
    * @return true Этот метод возвращает истину, если регистрация прошла успешно.
+   * @throws InvalidArgumentException Будет выброшено исключение, если:
+   *         1). значение, которое должно быть вызвано не callable.
+   *         2). передано более двух аргументов и первый аргумент - массив.
    */
-  public function overload(array $types_of_function_arguments, callable $callable)
+  public function overload()
   {
+    $param = func_get_args();
+    $callable = array_pop($param);
+    $types_of_function_arguments = $param;
+    
+    if ( ! is_callable( $callable ))
+    {
+      throw new InvalidArgumentException( $this->_error_msg[ self::ERROR_OVERLOAD_CALLABLE_MISSING ] );
+    }
+    
+    if (isset($param[0]) && is_array( $param[0] ))
+    {
+      if (array_key_exists( 1, $param ))
+      {
+        throw new InvalidArgumentException( 
+                $this->_error_msg[ self::ERROR_ARGUMENTS_LIST ] . 
+                ' ' . __METHOD__ );
+      }
+      
+      $types_of_function_arguments = $param[0];
+    }
+    
     $fixedData = $this->_getFixedData($types_of_function_arguments, null);
     return $this->_initOverload($callable, $fixedData);
   }
@@ -132,17 +178,49 @@ class PHP_Over
    * В случае удаления метод возвращает число, количестов функций которых
    * было удалено.
    */
-  public function override(array $types_of_function_arguments, $callable_or_strict_match = null)
+  public function override()
   {
+    $param = func_get_args();
+    $callable_or_strict_match = array_pop($param);
+    $types_of_function_arguments = $param;
+    
+    if (isset($param[0]) && is_array( $param[0] ))
+    {
+      if (array_key_exists( 1, $param ))
+      {
+        throw new InvalidArgumentException( 
+                $this->_error_msg[ self::ERROR_ARGUMENTS_LIST ] . 
+                ' ' . __METHOD__ );
+      }
+      
+      $types_of_function_arguments = $param[0];
+    }
+    
     $fixedData = $this->_getFixedData($types_of_function_arguments, null);
     return $this->_initOverride($callable_or_strict_match, $fixedData, true);
   }
   
   /**
-   * Вызывает ранее добавленную перегружаемую функцию.
+   * Магический метод __invoke перехватывает вызов объект как функции и 
+   * инициирует вызов зарегестрированной функции, которая должна быть 
+   * выполнена как перегруженная функция.
    * 
-   * @param mixed Ноль или более параметров, передаваемые в функцию.
-   * @return mixed Возвращает результат вызова перегруженной функции.
+   * @param mixed Ноль или более параметров, передаваемые в 
+   * зарегестрированную функцию.
+   * @return mixed Возвращает результат выполнения зарегестрированной функции.
+   */
+  public function __invoke()
+  {
+    return $this->_initInvoke(func_get_args());
+  }
+  
+  /**
+   * Инициирует вызов зарегестрированной функции, которая должна быть 
+   * выполнена как перегруженная функция.
+   * 
+   * @param mixed Ноль или более параметров, передаваемые в зарегестрированную 
+   * функцию.
+   * @return mixed Возвращает результат выполнения зарегестрированной функции.
    */
   public function invokeTo()
   {
@@ -150,15 +228,80 @@ class PHP_Over
   }
   
   /**
-   * Вызывает ранее добавленную перегружаемую функцию.
+   * Инициирует вызов зарегестрированной функции, которая должна быть 
+   * выполнена как перегруженная функция.
    * 
    * @param array|null $arguments Передаваемые в функцию параметры в виде массива.
-   * @return mixed Возвращает результат вызова перегруженной функции.
+   * @return mixed Возвращает результат выполнения зарегестрированной функции.
    */
   public function invokeArgsTo(array $arguments = null)
   {
     return $this->_initInvoke(( array )$arguments);
   }
+  
+  /**
+   * Инициирует вызов зарегестрированной функции, которая должна быть 
+   * выполнена как перегруженная функция.
+   * 
+   * Это статический вариант метода invokeTo().
+   * 
+   * В качестве псевдонима допускается значение любого типа. Однако только
+   * значения типа string или integer или float являются корректными значениями.
+   * Значения остальных типов будут преобразованы к типу string, в том числе 
+   * и типы integer и float, по следующим правилам:
+   * Значения типа array и object будут преобразованы к boolean.
+   * Значения типа boolean, NULL, resource будут преобразованы к float.
+   * Значения типа integer и float будут преобразованы к string.
+   * 
+   * @param mixed $alias_of_function Любое допустимое значение, которое будет 
+   * служить псевдонимом (идентификатором) для обращения к зарегестрированной
+   * функции.
+   * @param mixed Ноль или более параметров, передаваемые в зарегестрированную 
+   * функцию.
+   * @return mixed Возвращает результат выполнения зарегестрированной функции.
+   */
+  static protected function invoke($alias_of_function)
+  {
+    $hash = self::_fetchHash($alias_of_function);
+    $args = array_slice(func_get_args(), 1);
+    return self::getInstance()->_initInvoke($args, $hash);
+  }
+  
+  /**
+   * Инициирует вызов зарегестрированной функции, которая должна быть 
+   * выполнена как перегруженная функция.
+   * 
+   * Это статический вариант метода invokeArgsTo().
+   * 
+   * В качестве псевдонима допускается значение любого типа. Однако только
+   * значения типа string или integer или float являются корректными значениями.
+   * Значения остальных типов будут преобразованы к типу string, в том числе 
+   * и типы integer и float, по следующим правилам:
+   * Значения типа array и object будут преобразованы к boolean.
+   * Значения типа boolean, NULL, resource будут преобразованы к float.
+   * Значения типа integer и float будут преобразованы к string.
+   * 
+   * @param mixed $alias_of_function Любое допустимое значение, которое будет 
+   * служить псевдонимом (идентификатором) для обращения к зарегестрированной
+   * функции.
+   * @param array|null $arguments Передаваемые в функцию параметры в виде массива.
+   * @return mixed Возвращает результат выполнения зарегестрированной функции.
+   */
+  static protected function invokeArgs($alias_of_function, array $arguments = null)
+  {
+    $hash = self::_fetchHash($alias_of_function);
+    return self::getInstance()->_initInvoke(( array )$arguments, $hash);
+  }
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   
   /**
    * Метод инициирует добавление функции, которая должна быть перегружена в 
@@ -260,14 +403,27 @@ class PHP_Over
   }
   
   /**
-   * Метод инициирует вызов перегруженной функции.
+   * Метод выполняет зарегестрированную ранее как перегруженную функцию
+   * и возвращает результат ее выполнения.
+   * 
+   * Поиск зарегестрированной функции выполняется по количеству передаваемых
+   * аргументов а также по типу этих аргументов, определяемых с помощью функции
+   * gettype().
+   * 
+   * Значения типа NULL, которые могут присутствовать в конце списка 
+   * переданных аргументов будут вырезаны. Это сделано с целью передавать 
+   * все аргументы функции посреднека, которые по умолчанию принимают NULL.
+   * 
+   * Если зарегестрированная функция ожидает получить аргумент по ссылке, то
+   * такой аргумент будет передан по ссылке в вызов отражения функции.
    * 
    * @param array $arguments Передаваемые в функцию параметры в виде массива.
-   * @param string $hash Хэш псевдонима перегружаемой функции.
-   * Только в статическом вызове. 
-   * @return mixed Возвращает результат перегруженной функции.
+   * @param string $hash Хэш псевдонима зарегестрированной функции.
+   * ( Только в статическом вызове. ) 
+   * @return mixed Возвращает результат выполнения зарегестрированной функции.
    * @throws BadFunctionCallException Будет выброшено исключение, если:
-   *         1). Функция не будет найдена.
+   *         1). функци по заданному количеству и типам аргументов не была
+   *         зарегестрирована.
    */
   private function _initInvoke(array $arguments, $hash = null)
   {
@@ -309,6 +465,22 @@ class PHP_Over
     
     throw new BadFunctionCallException( $this->_error_msg[ self::ERROR_OVERLOAD_UNDEFINED ] );
   }
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   
   /**
    * 
@@ -665,7 +837,7 @@ class PHP_Over
       
       if ( ! is_string( $type ))
       {
-        throw new DomainException();
+        throw new InvalidArgumentException( $this->_error_msg[ self::ERROR_OVERLOAD_STRING_MISSING ] );
       }
       
       switch ($type)
@@ -737,30 +909,6 @@ class PHP_Over
     $is_array = $types_of_function_arguments===null ? false : true;
     $fixedData = self::getInstance()->_getFixedData(( array )$types_of_function_arguments, $hash);
     return self::getInstance()->_initOverride($callable_or_strict_match, $fixedData, $is_array);
-  }
-  
-  /**
-   * 
-   * @param type $alias_of_function
-   * @return type
-   */
-  static protected function invoke($alias_of_function)
-  {
-    $hash = self::_fetchHash($alias_of_function);
-    $args = array_slice(func_get_args(), 1);
-    return self::getInstance()->_initInvoke($args, $hash);
-  }
-  
-  /**
-   * 
-   * @param type $alias_of_function
-   * @param array $arguments
-   * @return type
-   */
-  static protected function invokeArgs($alias_of_function, array $arguments = null)
-  {
-    $hash = self::_fetchHash($alias_of_function);
-    return self::getInstance()->_initInvoke(( array )$arguments, $hash);
   }
   
   /**
