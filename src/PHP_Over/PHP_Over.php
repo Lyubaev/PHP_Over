@@ -8,6 +8,19 @@
  */
 class PHP_Over
 {
+  const ERRNO_ARG_NOT_CALLABLE = 0x1;
+  const ERRNO_IS_OPTIONAL_ARGS = 0x2;
+  const ERRNO_INVALID_SIZE_ARG = 0x3;
+  const ERRNO_INVALID_ARG_LIST = 0x4;
+  const ERRNO_INVALID_ARG_TYPE = 0x5;
+  const ERRNO_INVALID_VAL_TYPE = 0x6;
+  const ERRNO_ARGS_NOT_STRING  = 0x7;
+  const ERRNO_OVERLOAD_NEXIST  = 0x8;
+  const ERRNO_OVERLOAD_EXIST   = 0x9;
+  const ERRNO_BAD_FUNC_CALL    = 0xa;
+  const ERRNO_BAD_METH_CALL    = 0xb;
+  const ERRNO_INVALID_NAME_FN  = 0xc;
+  
   const TYPE_RESOURCE = 'resource';
   const TYPE_BOOLEAN  = 'boolean';
   const TYPE_INTEGER  = 'integer';
@@ -16,64 +29,35 @@ class PHP_Over
   const TYPE_OBJECT   = 'object';
   const TYPE_ARRAY    = 'array';
   
-  const ERROR_IS_OPTIONAL_ARG           = 0x1;
-  const ERROR_NUMBER_OF_TYPES           = 0x2;
-  const ERROR_TYPE_MISMATCH             = 0x3;
-  const ERROR_OVERLOAD_EXISTS           = 0x4;
-  const ERROR_CALL_TO_UNDEFINED_METHOD  = 0x5;
-  const ERROR_OVERRIDE_FUNC_NOT_EXISTS  = 0x6;
-  const ERROR_OVERRIDE_ARRAY_MISSING    = 0x7;
-  //const ERROR_REMOVE_BOOL_MISSING       = 0x8;
-  const ERROR_OVERLOAD_UNDEFINED        = 0x9;
-  const ERROR_OVERLOAD_CALLABLE_MISSING = 0xA;
-  const ERROR_OVERLOAD_STRING_MISSING   = 0xB;
-  const ERROR_ARGUMENTS_LIST            = 0xC;
-  
   static private $_instance,
-                 $_list_of_hashes;
+                 $_list_of_hashes,
+                 $_error_msg = array(
+                     1 => 'Переданный аргумент должен быть типа callable',
+                     2 => 'Аргумент регистрируемой функции является необязательным',
+                     3 => 'Количество аргументов не равно количеству указанных типов',
+                     4 => 'Неверный список аргументов',
+                     5 => 'Несоответствие ожидаемому типу аргумента',
+                     6 => 'Тип аргумента неизвестен',
+                     7 => 'Определение типа аргумента должен быть типа string',
+                     8 => 'Попытка переопределить ранее незарегистрированную функцию',
+                     9 => 'Попытка определить ранее зарегистрированную функцию',
+                    10 => 'Вызов неопределенной ранее функции',
+                    11 => 'Вызов неопределенного метода',
+                    12 => 'Неверный псевдоним функции');
   
   private $_index_of_pointers,
           $_pointers_to_overloaded_function,
-          $_reflections_of_overloaded_functions,
-          $_error_msg = array(
-              1 => 'Аргументы перегруженной функции содержат значения по умолчанию',
-              2 => 'Количество аргументов перегруженной функции не соответствует количеству указанных типов',
-              3 => 'Аргумент перегруженной функции ожидает получить тип не соответствующий указанному типу',
-              4 => 'Перегруженная функция была определена ранее',
-              5 => 'Вызов неопределенного метода',
-              6 => 'Переопределение функции невозможно. Перегруженная функция не найдена',
-              7 => 'Переопределение функции невозможно. Ожидает получить массив содержащий значения типов',
-              //8 => 'Удаление функции невозможно. Ожидает получить булев тип',
-              9 => 'Обращение к неопределенной функции',
-             10 => 'Регистрация функции невозможна. Ожидает получить значение типа "callable"',
-             11 => 'Список аргуметов определяющих тип, должен быть типа "string"',
-             12 => 'Некорректный список аргументов метода',);
+          $_reflections_of_overloaded_functions;
   
   public function __construct()
   {
-    $this->_index_of_pointers = 1000;
-    $this->_pointers_to_overloaded_function = array();
-    $this->_reflections_of_overloaded_functions = new SplObjectStorage;
+    $this->_index_of_pointers=1000;
+    $this->_pointers_to_overloaded_function=array();
+    $this->_reflections_of_overloaded_functions=new SplObjectStorage;
   }
   
   /**
-   * Магический метод __call перехватывает вызовы необъявленных методов, а также
-   * вызов статических методов в контексте объекта.
-   * 
-   * @param string $name Имя вызываемого метода.
-   * @param array $arguments Числовой массив, содержащий параметры, переданные 
-   * в вызываемый метод $name
-   * @throws BadMethodCallException Будет выброшено исключение если 
-   * обратный вызов относится к неопределенному методу.
-   */
-  public function __call($name, $arguments)
-  {
-    throw new BadMethodCallException(
-            $this->_error_msg[ self::ERROR_CALL_TO_UNDEFINED_METHOD ] . 
-            ' ' . __CLASS__ . "::$name()");
-  }
-  
-  /**
+   * !
    * Метод регестрирует функцию, которая должна быть вызвана и выполнена как
    * перегруженная функция, по заданному количеству и типам аргументов.
    * 
@@ -89,7 +73,7 @@ class PHP_Over
    * overload(['int'[,'string'[,...]]] $callable) : Регестрирует функцию, 
    * которая должна быть вызвана и выполнена как перегруженная функция
    * по заданному количеству и типам аргументов, которые перечислены в качестве
-   * параметоров вызова.
+   * параметоров вызова, предшевствующие последнему аргументу.
    * 
    * overload([array('int'),] $callable) : Регестрирует функцию, которая должна 
    * быть вызвана и выполнена как перегруженная функция по заданному количеству 
@@ -107,28 +91,37 @@ class PHP_Over
    */
   public function overload()
   {
+    $args = $this->_parseArgs(func_get_args());
+    
+    if ( ! isset($args[1]) || ! is_callable($args[1]))
+    {
+      throw new InvalidArgumentException(self::$_error_msg[ self::ERRNO_ARG_NOT_CALLABLE ]);
+    }
+    
+    $fixedData = $this->_getFixedData($args[0], null);
+    return $this->_initOverload($args[1], $fixedData);
+  }
+  
+  
+  static protected function load()
+  {
     $param = func_get_args();
-    $callable = array_pop($param);
-    $types_of_function_arguments = $param;
+    $name  = array_shift($param);
+    $self  = self::getInstance();
+    $args  = $self->_parseArgs($param);
     
-    if ( ! is_callable( $callable ))
+    if ( ! isset($args[1]) || ! is_callable($args[1]))
     {
-      throw new InvalidArgumentException( $this->_error_msg[ self::ERROR_OVERLOAD_CALLABLE_MISSING ] );
+      throw new InvalidArgumentException(self::$_error_msg[ self::ERRNO_ARG_NOT_CALLABLE ]);
     }
     
-    if (isset( $param[0] ) && is_array( $param[0] ))
+    if ( ! isset($name))
     {
-      if (array_key_exists( 1, $param ))
-      {
-        throw new InvalidArgumentException( 
-                $this->_error_msg[ self::ERROR_ARGUMENTS_LIST ] . 
-                ' ' . __METHOD__ );
-      }
-      $types_of_function_arguments = $param[0];
+      throw new InvalidArgumentException(self::$_error_msg[ self::ERRNO_INVALID_NAME_FN ]);
     }
     
-    $fixedData = $this->_getFixedData($types_of_function_arguments, null);
-    return $this->_initOverload($callable, $fixedData);
+    $fixedData = $self->_getFixedData($args[0], self::_fetchHash($name));
+    return $self->_initOverload($args[1], $fixedData);
   }
   
   /**
@@ -210,30 +203,43 @@ class PHP_Over
    */
   public function override()
   {
-    $param = func_get_args();
-    $last_element = end($param);
-    $callable_or_strict_match = true;
+    $args = $this->_parseArgs(func_get_args());
     
-    if ( is_callable($last_element) || is_bool($last_element) || $last_element===null )
+    $fixedData = $this->_getFixedData($args[0], null);
+    return $this->_initOverride($args[1], $fixedData, true);
+  }
+  
+  private function _parseArgs(array $arguments)
+  {
+    $ret = array(null,null);
+    $last_elem = end($arguments);
+    
+    if (is_callable($last_elem) || is_bool($last_elem))
     {
-      $callable_or_strict_match = array_pop($param);
+      $ret[1] = array_pop($arguments);
     }
-    $types_of_function_arguments = $param;
+    $ret[0] = $arguments;
     
-    if (isset($param[0]) && is_array( $param[0] ))
+    if ( isset($arguments[0]) && is_array($arguments[0]) )
     {
-      if (array_key_exists( 1, $param ))
+      if (array_key_exists(1, $arguments))
       {
-        throw new InvalidArgumentException( 
-                $this->_error_msg[ self::ERROR_ARGUMENTS_LIST ] . 
-                ' ' . __METHOD__ );
+        throw new InvalidArgumentException(self::$_error_msg[ self::ERRNO_INVALID_ARG_LIST ]);
       }
-      
-      $types_of_function_arguments = $param[0];
+      $ret[0] = $arguments[0];
     }
     
-    $fixedData = $this->_getFixedData($types_of_function_arguments, null);
-    return $this->_initOverride($callable_or_strict_match, $fixedData, true);
+    return $ret;
+  }
+  
+  
+  
+  static protected function ride($alias_of_function, array $types_of_function_arguments = null, $callable_or_strict_match = null)
+  {
+    $hash = self::_fetchHash($alias_of_function);
+    $is_array = $types_of_function_arguments===null ? false : true;
+    $fixedData = self::getInstance()->_getFixedData(( array )$types_of_function_arguments, $hash);
+    return self::getInstance()->_initOverride($callable_or_strict_match, $fixedData, $is_array);
   }
   
   /**
@@ -272,7 +278,7 @@ class PHP_Over
    */
   public function invokeArgsTo(array $arguments = null)
   {
-    return $this->_initInvoke(( array )$arguments);
+    return $this->_initInvoke((array)$arguments);
   }
   
   /**
@@ -326,7 +332,7 @@ class PHP_Over
   static protected function invokeArgs($alias_of_function, array $arguments = null)
   {
     $hash = self::_fetchHash($alias_of_function);
-    return self::getInstance()->_initInvoke(( array )$arguments, $hash);
+    return self::getInstance()->_initInvoke((array)$arguments, $hash);
   }
   
   
@@ -364,33 +370,34 @@ class PHP_Over
     
     if ($reflection_func->getNumberOfParameters() > $reflection_func->getNumberOfRequiredParameters())
 	{
-	  throw new LogicException( $this->_error_msg[ self::ERROR_IS_OPTIONAL_ARG ] );
+	  throw new LogicException(self::$_error_msg[ self::ERRNO_IS_OPTIONAL_ARGS ]);
     }
     
     if ($reflection_func->getNumberOfParameters() <> $fixedData->size)
 	{
-	  throw new LogicException( $this->_error_msg[ self::ERROR_NUMBER_OF_TYPES ] );
+	  throw new LogicException(self::$_error_msg[ self::ERRNO_INVALID_SIZE_ARG ]);
     }
     
     $parameters = $reflection_func->getParameters();
-    for ($fixedData->rewind(); $fixedData->valid(); $fixedData->next())
+    $fixedData->rewind();
+    while ( $fixedData->valid() )
     {
       $parameter = $parameters[ $fixedData->key() ];
-      
       if ( ! ($this->_compareExpectedType($parameter, $fixedData->current())) )
       {
-        throw new DomainException( $this->_error_msg[ self::ERROR_TYPE_MISMATCH ] );
+        throw new DomainException(self::$_error_msg[ self::ERRNO_INVALID_ARG_TYPE ]);
       }
       
       if ($parameter->isPassedByReference())
       {
         $reflection_data['ByRef'][] = $parameter->getPosition();
       }
+      $fixedData->next();
     }
     
     if ( ! $this->_add_function($reflection_data, $fixedData))
     {
-      throw new LogicException( $this->_error_msg[ self::ERROR_OVERLOAD_EXISTS ] );
+      throw new LogicException(self::$_error_msg[ self::ERRNO_OVERLOAD_EXIST ]);
     }
     
     return true;
@@ -416,14 +423,14 @@ class PHP_Over
     {
       if ( ! $types_is_array)
       {
-        throw new LogicException( $this->_error_msg[ self::ERROR_OVERRIDE_ARRAY_MISSING ] );
+        //throw new LogicException( $this->_error_msg[ self::ERROR_OVERRIDE_ARRAY_MISSING ] );
       }
       
-      $result = $this->_override_function($callable_or_strict_match, $fixedData);
+      $res = $this->_override_function($callable_or_strict_match, $fixedData);
       
-      if ($result instanceof LogicException)
+      if ($res instanceof Exception)
       {
-        throw $result;
+        throw $res;
       }
       
       return true;
@@ -494,7 +501,7 @@ class PHP_Over
           : $reflection_func->invokeArgs( $arguments );
     }
     
-    throw new BadFunctionCallException( $this->_error_msg[ self::ERROR_OVERLOAD_UNDEFINED ] );
+    throw new BadFunctionCallException(self::$_error_msg[ self::ERRNO_BAD_FUNC_CALL ]);
   }
   
   
@@ -607,19 +614,19 @@ class PHP_Over
   {
     $pointers_id = $this->_deletePointer($fixedData, $this->_pointers_to_overloaded_function);
     
-    if ( ! $pointers_id)
+    if (empty( $pointers_id ))
     {
-      return new LogicException( $this->_error_msg[ self::ERROR_OVERRIDE_FUNC_NOT_EXISTS ] );
+      return new LogicException(self::$_error_msg[ self::ERRNO_OVERLOAD_NEXIST ]);
     }
     
     try
     {
       $this->_initOverload($callable, $fixedData);
     }
-    catch ( LogicException $exc )
+    catch (LogicException $exc)
     {
       //Restore pointer
-      $this->setPointer( $fixedData, $pointers_id[0] );
+      $this->setPointer($fixedData, $pointers_id[0]);
       return $exc;
     }
     
@@ -674,6 +681,7 @@ class PHP_Over
       {
         $ref[ $current ]=array();
       }
+      $ref =& $ref[ $current ];
       $fixedData->next();
     }
     
@@ -877,7 +885,7 @@ class PHP_Over
       $type = current( $types ); prev( $types );
       if ( ! is_string( $type ))
       {
-        throw new InvalidArgumentException( $this->_error_msg[ self::ERROR_OVERLOAD_STRING_MISSING ] );
+        throw new InvalidArgumentException(self::$_error_msg[ self::ERRNO_ARGS_NOT_STRING ]);
       }
       
       switch ($type)
@@ -911,7 +919,7 @@ class PHP_Over
           break;
         
         default :
-          throw new DomainException();
+          throw new DomainException(self::$_error_msg[ self::ERRNO_INVALID_VAL_TYPE ]);
       }
     }
     return $data;
@@ -929,41 +937,12 @@ class PHP_Over
     {
       $method=new ReflectionMethod(__CLASS__, $name);
       if ($method->isProtected())
-      {
         return call_user_func_array("self::$name", $arguments);
-      }
     }
-    self::getInstance()->__call($name, null);
+    throw new BadMethodCallException(self::$_error_msg[self::ERRNO_BAD_METH_CALL]);
   }
   
-  /**
-   * 
-   * @param type $alias_of_function
-   * @param array $types_of_function_arguments
-   * @param callable $callable
-   * @return type
-   */
-  static protected function load($alias_of_function, array $types_of_function_arguments, callable $callable)
-  {
-    $hash = self::_fetchHash($alias_of_function);
-    $fixedData = self::getInstance()->_getFixedData($types_of_function_arguments, $hash);
-    return self::getInstance()->_initOverload($callable, $fixedData);
-  }
   
-  /**
-   * 
-   * @param type $alias_of_function
-   * @param array $types_of_function_arguments
-   * @param type $callable_or_strict_match
-   * @return type
-   */
-  static protected function ride($alias_of_function, array $types_of_function_arguments = null, $callable_or_strict_match = null)
-  {
-    $hash = self::_fetchHash($alias_of_function);
-    $is_array = $types_of_function_arguments===null ? false : true;
-    $fixedData = self::getInstance()->_getFixedData(( array )$types_of_function_arguments, $hash);
-    return self::getInstance()->_initOverride($callable_or_strict_match, $fixedData, $is_array);
-  }
   
   /**
    * !
