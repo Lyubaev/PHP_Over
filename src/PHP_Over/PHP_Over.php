@@ -91,37 +91,12 @@ class PHP_Over
    */
   public function overload()
   {
+    if ( ! isset($this))
+      return static::__callStatic('load', func_get_args());
+    
     $args = $this->_parseArgs(func_get_args());
-    
-    if ( ! isset($args[1]) || ! is_callable($args[1]))
-    {
-      throw new InvalidArgumentException(self::$_error_msg[ self::ERRNO_ARG_NOT_CALLABLE ]);
-    }
-    
     $fixedData = $this->_getFixedData($args[0], null);
     return $this->_initOverload($args[1], $fixedData);
-  }
-  
-  
-  static protected function load()
-  {
-    $param = func_get_args();
-    $name  = array_shift($param);
-    $self  = self::getInstance();
-    $args  = $self->_parseArgs($param);
-    
-    if ( ! isset($args[1]) || ! is_callable($args[1]))
-    {
-      throw new InvalidArgumentException(self::$_error_msg[ self::ERRNO_ARG_NOT_CALLABLE ]);
-    }
-    
-    if ( ! isset($name))
-    {
-      throw new InvalidArgumentException(self::$_error_msg[ self::ERRNO_INVALID_NAME_FN ]);
-    }
-    
-    $fixedData = $self->_getFixedData($args[0], self::_fetchHash($name));
-    return $self->_initOverload($args[1], $fixedData);
   }
   
   /**
@@ -203,11 +178,15 @@ class PHP_Over
    */
   public function override()
   {
-    $args = $this->_parseArgs(func_get_args());
+    if ( ! isset($this))
+      return static::__callStatic('ride', func_get_args());
     
+    $args = $this->_parseArgs(func_get_args());
     $fixedData = $this->_getFixedData($args[0], null);
-    return $this->_initOverride($args[1], $fixedData, true);
+    return $this->_initOverride($args[1], $fixedData);
   }
+  
+  
   
   private function _parseArgs(array $arguments)
   {
@@ -228,19 +207,12 @@ class PHP_Over
       }
       $ret[0] = $arguments[0];
     }
-    
     return $ret;
   }
   
   
   
-  static protected function ride($alias_of_function, array $types_of_function_arguments = null, $callable_or_strict_match = null)
-  {
-    $hash = self::_fetchHash($alias_of_function);
-    $is_array = $types_of_function_arguments===null ? false : true;
-    $fixedData = self::getInstance()->_getFixedData(( array )$types_of_function_arguments, $hash);
-    return self::getInstance()->_initOverride($callable_or_strict_match, $fixedData, $is_array);
-  }
+  
   
   /**
    * Магический метод __invoke перехватывает вызов объект как функции и 
@@ -266,7 +238,9 @@ class PHP_Over
    */
   public function invokeTo()
   {
-    return $this->_initInvoke(func_get_args());
+    return isset($this) 
+      ? $this->_initInvoke(func_get_args())
+      : static::__callStatic('invoke', func_get_args());
   }
   
   /**
@@ -278,72 +252,42 @@ class PHP_Over
    */
   public function invokeArgsTo(array $arguments = null)
   {
-    return $this->_initInvoke((array)$arguments);
+    return isset($this) 
+      ? $this->_initInvoke((array)$arguments)
+      : static::__callStatic('invokeArgs', func_get_args());
   }
   
-  /**
-   * Инициирует вызов зарегестрированной функции, которая должна быть 
-   * выполнена как перегруженная функция.
-   * 
-   * Это статический вариант метода invokeTo().
-   * 
-   * В качестве псевдонима допускается значение любого типа. Однако только
-   * значения типа string или integer или float являются корректными значениями.
-   * Значения остальных типов будут преобразованы к типу string, в том числе 
-   * и типы integer и float, по следующим правилам:
-   * Значения типа array и object будут преобразованы к boolean.
-   * Значения типа boolean, NULL, resource будут преобразованы к float.
-   * Значения типа integer и float будут преобразованы к string.
-   * 
-   * @param mixed $alias_of_function Любое допустимое значение, которое будет 
-   * служить псевдонимом (идентификатором) для обращения к зарегестрированной
-   * функции.
-   * @param mixed Ноль или более параметров, передаваемые в зарегестрированную 
-   * функцию.
-   * @return mixed Возвращает результат выполнения зарегестрированной функции.
-   */
-  static protected function invoke($alias_of_function)
+  static public function __callStatic($method, $arguments)
   {
-    $hash = self::_fetchHash($alias_of_function);
-    $args = array_slice(func_get_args(), 1);
-    return self::getInstance()->_initInvoke($args, $hash);
+    $name = array_shift($arguments);
+    if ( ! isset($name))
+    {
+      throw new InvalidArgumentException(self::$_error_msg[ self::ERRNO_INVALID_NAME_FN ]);
+    }
+    
+    $initMethod = '_initover' . $method;
+    if (method_exists(__CLASS__, $initMethod))
+    {
+      $self = self::getInstance();
+      $args = $self->_parseArgs($arguments);
+      $fixedData = $self->_getFixedData($args[0], self::_fetchHash($name));
+      return $self->$initMethod($args[1], $fixedData);
+    }
+    
+    $initMethod = $method . 'to';
+    if (method_exists(__CLASS__, $initMethod))
+    {
+      $self = self::getInstance();
+      if (stripos($initMethod, 'args'))
+      {
+        $arguments[] = false;
+        $arguments = $self->_parseArgs($arguments);
+        $arguments = $arguments[0];
+      }
+      return $self->_initInvoke($arguments, self::_fetchHash($name));
+    }
+    throw new BadMethodCallException(self::$_error_msg[self::ERRNO_BAD_METH_CALL]);
   }
-  
-  /**
-   * Инициирует вызов зарегестрированной функции, которая должна быть 
-   * выполнена как перегруженная функция.
-   * 
-   * Это статический вариант метода invokeArgsTo().
-   * 
-   * В качестве псевдонима допускается значение любого типа. Однако только
-   * значения типа string или integer или float являются корректными значениями.
-   * Значения остальных типов будут преобразованы к типу string, в том числе 
-   * и типы integer и float, по следующим правилам:
-   * Значения типа array и object будут преобразованы к boolean.
-   * Значения типа boolean, NULL, resource будут преобразованы к float.
-   * Значения типа integer и float будут преобразованы к string.
-   * 
-   * @param mixed $alias_of_function Любое допустимое значение, которое будет 
-   * служить псевдонимом (идентификатором) для обращения к зарегестрированной
-   * функции.
-   * @param array $arguments Передаваемые в функцию параметры в виде массива.
-   * @return mixed Возвращает результат выполнения зарегестрированной функции.
-   */
-  static protected function invokeArgs($alias_of_function, array $arguments = null)
-  {
-    $hash = self::_fetchHash($alias_of_function);
-    return self::getInstance()->_initInvoke((array)$arguments, $hash);
-  }
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
   
   /**
    * Метод инициирует добавление функции, которая должна быть перегружена в 
@@ -363,8 +307,13 @@ class PHP_Over
    *         1). Аргумент перегруженной функции ожидает получить тип 
    *             не соответствующий указанному типу.
    */
-  private function _initOverload(callable $callable, SplFixedArray $fixedData)
+  private function _initOverload($callable, SplFixedArray $fixedData)
   {
+    if ( ! is_callable($callable))
+    {
+      throw new InvalidArgumentException(self::$_error_msg[ self::ERRNO_ARG_NOT_CALLABLE ]);
+    }
+    
     $reflection_data = $this->_getDataReflection( $callable );
     $reflection_func = $reflection_data[0];
     
@@ -414,30 +363,22 @@ class PHP_Over
    * массив, содержащий значения и количество типов
    * @return boolean
    * @throws LogicException
-   * @throws @var:$this@mtd:_override_function
+   * @throws @var:$this@mtd:_edit_function
    * @throws InvalidArgumentException
    */
-  private function _initOverride($callable_or_strict_match, SplFixedArray $fixedData, $types_is_array)
+  private function _initOverride($callable_or_strict_match, SplFixedArray $fixedData)
   {
-    if (is_callable( $callable_or_strict_match ))
+    // Override.
+    if (is_callable($callable_or_strict_match))
     {
-      if ( ! $types_is_array)
-      {
-        //throw new LogicException( $this->_error_msg[ self::ERROR_OVERRIDE_ARRAY_MISSING ] );
-      }
-      
-      $res = $this->_override_function($callable_or_strict_match, $fixedData);
-      
-      if ($res instanceof Exception)
-      {
-        throw $res;
-      }
+      $ride = $this->_edit_function($callable_or_strict_match, $fixedData);
+      if ( $ride instanceof LogicException )
+        throw $ride;
       
       return true;
     }
-    
     // Remove.
-    return $this->_remove_function($callable_or_strict_match, $fixedData, $types_is_array);
+    return $this->_remove_function($callable_or_strict_match, $fixedData);
   }
   
   /**
@@ -520,101 +461,57 @@ class PHP_Over
   
   
   
-  /**
-   * 
-   * @param array $reflection_data
-   * @param SplFixedArray $fixedData
-   * @return boolean
-   */
   private function _add_function(array $reflection_data, SplFixedArray $fixedData)
   {
-    $pointer_id = $this->_setPointer($fixedData, (object)++$this->_index_of_pointers);
-    
-    if ($pointer_id)
+    if ( ! $pointer_id = $this->_setPointer($fixedData, (object)++$this->_index_of_pointers))
     {
-      $this->_reflections_of_overloaded_functions->attach($pointer_id, $reflection_data);
-      return true;
+      return false;
     }
-    
-    return false;
+    $this->_reflections_of_overloaded_functions->attach($pointer_id, $reflection_data);
+    return true;
   }
   
-  /**
-   * 
-   * @param type $strict_match_types
-   * @param SplFixedArray $fixedData
-   * @param type $types_is_array
-   * @return int
-   */
-  private function _remove_function($strict_match_types, SplFixedArray $fixedData, $types_is_array)
+  private function _remove_function($strict_match_types, SplFixedArray $fixedData)
   {
     $ret = 0;
     $pointers_id = array();
-    $ref_pointers = null;
+    $ref_pointers =& $this->_pointers_to_overloaded_function;
     
     if ($fixedData->hash)
     {
-      if ( ! isset($this->_pointers_to_overloaded_function[ $fixedData->hash ]))
-      {
-        return $ret;
-      }
+      if ( ! isset($ref_pointers[ $fixedData->hash ])) return $ret;
+      $ref_pointers =& $ref_pointers[ $fixedData->hash ];
+    }
+    
+    if ($strict_match_types || $strict_match_types===null)
+    {
+      $pointers_id = $this->_deletePointer($fixedData, $ref_pointers);
+    }
+    else
+    {
+      $keys = array_keys($ref_pointers);
+      $range = range(-1, $fixedData->size-1);
       
-      $ref_pointers =& $this->_pointers_to_overloaded_function[ $fixedData->hash ];
-    }
-    else
-    {
-      $ref_pointers =& $this->_pointers_to_overloaded_function;
-    }
-    
-    // Статический вызов.
-    // Удалить все перегруженные функции с заданным псевдонимом.
-    if ( ! $types_is_array)
-    {
-      $pointers_id = $this->_findPointers($ref_pointers);
-      unset($this->_pointers_to_overloaded_function[ $fixedData->hash ]);
-    }
-    else
-    {
-      if ($strict_match_types || $strict_match_types===null)
+      foreach (array_diff($keys, $range) as $size)
       {
-        $pointers_id = $this->_deletePointer($fixedData, $ref_pointers);
-      }
-      else
-      {
-        $dimension = array_diff(
-                       array_keys($ref_pointers),
-                       range(0, $fixedData->size-1));
-        foreach ($dimension as $size)
-        {
-          $fixedData->size = $size;
-          $pointers_id = array_merge(
-                           $pointers_id,
-                           $this->_deletePointer($fixedData, $ref_pointers));
-        }
+        $fixedData->size = $size;
+        $pointers_id = array_merge( $pointers_id, $this->_deletePointer($fixedData, $ref_pointers) );
       }
     }
     
-    $ret = $i = count($pointers_id);
-    while ( $i-- )
+    $i = $ret = sizeof($pointers_id);
+    while ($i--)
     {
       $this->_reflections_of_overloaded_functions->detach($pointers_id[ $i ]);
     }
-    
     unset($ref_pointers);
     return $ret;
   }
   
-  /**
-   * 
-   * @param callable $callable
-   * @param SplFixedArray $fixedData
-   * @return \LogicException|boolean
-   */
-  private function _override_function(callable $callable, SplFixedArray $fixedData)
+  private function _edit_function(callable $callable, SplFixedArray $fixedData)
   {
     $pointers_id = $this->_deletePointer($fixedData, $this->_pointers_to_overloaded_function);
-    
-    if (empty( $pointers_id ))
+    if (empty($pointers_id))
     {
       return new LogicException(self::$_error_msg[ self::ERRNO_OVERLOAD_NEXIST ]);
     }
@@ -629,16 +526,10 @@ class PHP_Over
       $this->setPointer($fixedData, $pointers_id[0]);
       return $exc;
     }
-    
-    $this->_reflections_of_overloaded_functions->detach( $pointers_id[0] );
+    $this->_reflections_of_overloaded_functions->detach($pointers_id[0]);
     return true;
   }
   
-  /**
-   * 
-   * @param array $container
-   * @return array
-   */
   private function _findPointers(array $container)
   {
     $ret = array();
@@ -654,12 +545,6 @@ class PHP_Over
     return $ret;
   }
   
-  /**
-   * 
-   * @param SplFixedArray $fixedData
-   * @param stdClass $pointer_id
-   * @return stdClass|false
-   */
   private function _setPointer(SplFixedArray $fixedData, stdClass $pointer_id)
   {
     $ref =& $this->_pointers_to_overloaded_function;
@@ -693,12 +578,6 @@ class PHP_Over
     return $pointer_id;
   }
   
-  /**
-   * 
-   * @param SplFixedArray $fixedData
-   * @param array $container
-   * @return null
-   */
   private function _getPointer(SplFixedArray $fixedData, array $container)
   {
     if ($fixedData->hash)
@@ -719,18 +598,11 @@ class PHP_Over
         $fixedData->next();
         continue;
       }
-      
       return null;
     }
     return $container;
   }
   
-  /**
-   * 
-   * @param SplFixedArray $fixedData
-   * @param array $container
-   * @return type
-   */
   private function _deletePointer(SplFixedArray $fixedData, array &$container)
   {
     $ret = array();
@@ -771,8 +643,8 @@ class PHP_Over
       {
         if (isset( $last_value ))
         {
-          // count( null ) equal 0
-          if (1 > count( $container[ $last_value ] ))
+          // sizeof( null ) === 0
+          if (1 > sizeof( $container[ $last_value ] ))
             unset( $container[ $last_value ] );
           else
             break 1;
@@ -790,14 +662,14 @@ class PHP_Over
       }
       $container =& $ref_container;
       
-    } while( $size > 0 );
-    
-    if (isset( $last_value ) && (1 > count( $container[ $last_value ] )))
-    {
-      unset( $container[ $last_value ] );
     }
+    while( $size > 0 );
     
-    unset( $ref_container );
+    if ( isset($last_value) && (1 > sizeof($container[ $last_value ])) )
+    {
+      unset($container[ $last_value ]);
+    }
+    unset($ref_container);
     return $ret;
   }
   
@@ -815,9 +687,9 @@ class PHP_Over
    */
   private function _getDataReflection(callable $callable)
   {
-    if (is_string( $callable ) && strpos( $callable, '::' ))
+    if ( is_string($callable) && strpos($callable, '::') )
 	{
-	  $callable = explode( '::', $callable );
+	  $callable = explode('::', $callable);
 	}
     
     return is_array( $callable ) 
@@ -842,7 +714,6 @@ class PHP_Over
     {
       return false;
     }
-    
     if ($parameter->isCallable() &&
         $type_of_arg !== self::TYPE_OBJECT &&
         $type_of_arg !== self::TYPE_STRING &&
@@ -850,7 +721,6 @@ class PHP_Over
     {
       return false;
     }
-    
     return true;
   }
   
@@ -874,15 +744,16 @@ class PHP_Over
    */
   private function _getFixedData(array $types, $hash)
   {
-    $size = sizeof( $types );
+    $size = sizeof($types);
     $data=new SplFixedArray( $size );
     $data->hash = $hash;
     $data->size = $size;
+    end($types);
     
-    end( $types );
-    while ( $size-- )
+    while ($size--)
     {
-      $type = current( $types ); prev( $types );
+      $type = current($types);
+      
       if ( ! is_string( $type ))
       {
         throw new InvalidArgumentException(self::$_error_msg[ self::ERRNO_ARGS_NOT_STRING ]);
@@ -921,26 +792,13 @@ class PHP_Over
         default :
           throw new DomainException(self::$_error_msg[ self::ERRNO_INVALID_VAL_TYPE ]);
       }
+      
+      prev($types);
     }
     return $data;
   }
   
-  /**
-   * 
-   * @param type $name
-   * @param type $arguments
-   * @return type
-   */
-  static public function __callStatic($name, $arguments)
-  {
-    if (method_exists(__CLASS__, $name))
-    {
-      $method=new ReflectionMethod(__CLASS__, $name);
-      if ($method->isProtected())
-        return call_user_func_array("self::$name", $arguments);
-    }
-    throw new BadMethodCallException(self::$_error_msg[self::ERRNO_BAD_METH_CALL]);
-  }
+  
   
   
   
@@ -958,7 +816,6 @@ class PHP_Over
       self::$_instance=new self;
       self::$_list_of_hashes=array();
     }
-    
     return self::$_instance;
   }
   
@@ -976,7 +833,7 @@ class PHP_Over
     if ($type==='array' || $type==='object')
       return ((string)(float)!!$var);
     
-    if ($type==='boolean' || $var===null || $type==='resource')
+    if ($type==='boolean' || $type==='resource')
       return ((string)(float)$var);
     
       return ((string)$var);
@@ -992,12 +849,10 @@ class PHP_Over
   static private function _fetchHash($var)
   {
     $str = self::_fetchString($var);
-    
     if ( ! isset(self::$_list_of_hashes[ $str ]))
     {
-      self::$_list_of_hashes[ $str ] = sha1( $str );
+      self::$_list_of_hashes[ $str ] = sha1($str);
     }
-    
     return self::$_list_of_hashes[ $str ];
   }
   
