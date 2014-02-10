@@ -57,46 +57,88 @@ class PHP_Over
   }
   
   /**
+   * Магический метод __callStatic
+   * 
+   * @method TRUE load();
+   * @method int ride();
+   * @method mixed invoke();
+   * @method mixed invokeArgs();
+   * @param string $method
+   * @param array $arguments
+   * @return mixed
+   * @throws InvalidArgumentException
+   * @throws BadMethodCallException
+   */
+  static public function __callStatic($method, $arguments)
+  {
+    $name = array_shift($arguments);
+    if ( ! isset($name))
+    {
+      throw new InvalidArgumentException(self::$_error_msg[ self::ERRNO_INVALID_NAME_FN ]);
+    }
+    
+    $initMethod = '_initover' . $method;
+    if (method_exists(__CLASS__, $initMethod))
+    {
+      $self = self::getInstance();
+      $args = $self->_parseArgs($arguments);
+      $fixedData = $self->_getFixedData($args[0], self::_fetchHash($name));
+      return $self->$initMethod($args[1], $fixedData);
+    }
+    
+    $initMethod = $method . 'to';
+    if (method_exists(__CLASS__, $initMethod))
+    {
+      $self = self::getInstance();
+      if (stripos($initMethod, 'args'))
+      {
+        $arguments[] = false;
+        $arguments = $self->_parseArgs($arguments);
+        $arguments = $arguments[0];
+      }
+      return $self->_initInvoke($arguments, self::_fetchHash($name));
+    }
+    throw new BadMethodCallException(self::$_error_msg[self::ERRNO_BAD_METH_CALL]);
+  }
+  
+  /**
    * !
-   * Метод регестрирует функцию, которая должна быть вызвана и выполнена как
-   * перегруженная функция, по заданному количеству и типам аргументов.
+   * Метод регестрирует функцию, которая должна быть вызвана и выполнена 
+   * по заданному количеству и типам аргументов.
    * 
    * Значения ожидаемых типов для аргументов могут быть следуюущими:
    * string | %s | integer | int | %i | double | %d | float | %f | real
    * boolean | bool | %b | array | %a | object | %o | resource | %r
    * 
    * Пример:
-   * 
-   * overload($callable) : Регестрирует функцию, которая должна быть вызвана 
-   * и выполнена как перегруженная функция без аргументов.
-   * 
-   * overload(['int'[,'string'[,...]]] $callable) : Регестрирует функцию, 
-   * которая должна быть вызвана и выполнена как перегруженная функция
+   * overload($callable) : Регестрирует функцию без аргументов.
+   * overload(['type'[,'type'[,...]]] $callable) : Регестрирует функцию 
    * по заданному количеству и типам аргументов, которые перечислены в качестве
    * параметоров вызова, предшевствующие последнему аргументу.
-   * 
-   * overload([array('int'),] $callable) : Регестрирует функцию, которая должна 
-   * быть вызвана и выполнена как перегруженная функция по заданному количеству 
-   * и типам аргументов, которые перечислены в массиве, указанном в первом 
-   * параметре вызова.
+   * overload([array('type'),] $callable) : Регестрирует функцию по заданному 
+   * количеству и типам аргументов, которые перечислены в массиве, указанном 
+   * в первом параметре вызова.
    * 
    * @param array|string $types Массив, либо ноль и более параметров содержащий 
    * значения ожидаемого типа для аргументов функции, которая должна быть 
    * выполнена как перегруженная.
    * @param callable $callable Значение, которое может быть вызвано.
-   * @return true Этот метод возвращает TRUE, если регистрация прошла успешно.
+   * @return TRUE Этот метод возвращает TRUE, если регистрация прошла успешно.
    * @throws InvalidArgumentException Будет выброшено исключение, если:
-   *         1). значение, которое должно быть вызвано не callable.
-   *         2). передано более двух аргументов и первый аргумент - массив.
+   *         a). последний аргумент передаваемый в метод не callable;
+   *         b). первый аргумент передаваемый в метод массив, а общее количество
+   *             передаваемых аргументов больше 2.
    */
   public function overload()
   {
-    if ( ! isset($this))
-      return static::__callStatic('load', func_get_args());
+    if (isset( $this ))
+    {
+      $args = $this->_parseArgs(func_get_args());
+      $fixedData = $this->_getFixedData($args[0], null);
+      return $this->_initOverload($args[1], $fixedData);
+    }
     
-    $args = $this->_parseArgs(func_get_args());
-    $fixedData = $this->_getFixedData($args[0], null);
-    return $this->_initOverload($args[1], $fixedData);
+    return static::__callStatic(substr(__FUNCTION__, 4), func_get_args());
   }
   
   /**
@@ -178,16 +220,65 @@ class PHP_Over
    */
   public function override()
   {
-    if ( ! isset($this))
-      return static::__callStatic('ride', func_get_args());
+    if (isset( $this ))
+    {
+      $args = $this->_parseArgs(func_get_args());
+      $fixedData = $this->_getFixedData($args[0], null);
+      return $this->_initOverride($args[1], $fixedData);
+    }
     
-    $args = $this->_parseArgs(func_get_args());
-    $fixedData = $this->_getFixedData($args[0], null);
-    return $this->_initOverride($args[1], $fixedData);
+    return static::__callStatic(substr(__FUNCTION__, 4), func_get_args());
   }
   
+  /**
+   * !
+   * Инициирует вызов зарегестрированной функции.
+   * 
+   * @param mixed Ноль или более параметров, передаваемые в зарегестрированную функцию.
+   * @return mixed Возвращает результат выполнения зарегестрированной функции.
+   */
+  public function invokeTo()
+  {
+    return isset( $this ) 
+      ? $this->_initInvoke(func_get_args())
+      : static::__callStatic(substr(__FUNCTION__,0,-2), func_get_args());
+  }
   
+  /**
+   * !
+   * Инициирует вызов зарегестрированной функции.
+   * 
+   * @param array $arguments Передаваемые в функцию параметры в виде массива.
+   * @return mixed Возвращает результат выполнения зарегестрированной функции.
+   */
+  public function invokeArgsTo(array $arguments = null)
+  {
+    return isset( $this ) 
+      ? $this->_initInvoke((array)$arguments)
+      : static::__callStatic(substr(__FUNCTION__,0,-2), func_get_args());
+  }
   
+  /**
+   * !
+   * Магический метод __invoke перехватывает вызов объекта как функции и 
+   * инициирует вызов зарегестрированной функции.
+   * 
+   * @param mixed Ноль или более параметров, передаваемые в зарегестрированную функцию.
+   * @return mixed Возвращает результат выполнения зарегестрированной функции.
+   */
+  public function __invoke()
+  {
+    return $this->_initInvoke(func_get_args());
+  }
+  
+  /**
+   * Метод разбирает аргументы, передаваемые в методы overload и override.
+   * Возвращает массив,
+   * 
+   * @param array $arguments
+   * @return array
+   * @throws InvalidArgumentException
+   */
   private function _parseArgs(array $arguments)
   {
     $ret = array(null,null);
@@ -208,85 +299,6 @@ class PHP_Over
       $ret[0] = $arguments[0];
     }
     return $ret;
-  }
-  
-  
-  
-  
-  
-  /**
-   * Магический метод __invoke перехватывает вызов объект как функции и 
-   * инициирует вызов зарегестрированной функции, которая должна быть 
-   * выполнена как перегруженная функция.
-   * 
-   * @param mixed Ноль или более параметров, передаваемые в 
-   * зарегестрированную функцию.
-   * @return mixed Возвращает результат выполнения зарегестрированной функции.
-   */
-  public function __invoke()
-  {
-    return $this->_initInvoke(func_get_args());
-  }
-  
-  /**
-   * Инициирует вызов зарегестрированной функции, которая должна быть 
-   * выполнена как перегруженная функция.
-   * 
-   * @param mixed Ноль или более параметров, передаваемые в зарегестрированную 
-   * функцию.
-   * @return mixed Возвращает результат выполнения зарегестрированной функции.
-   */
-  public function invokeTo()
-  {
-    return isset($this) 
-      ? $this->_initInvoke(func_get_args())
-      : static::__callStatic('invoke', func_get_args());
-  }
-  
-  /**
-   * Инициирует вызов зарегестрированной функции, которая должна быть 
-   * выполнена как перегруженная функция.
-   * 
-   * @param array $arguments Передаваемые в функцию параметры в виде массива.
-   * @return mixed Возвращает результат выполнения зарегестрированной функции.
-   */
-  public function invokeArgsTo(array $arguments = null)
-  {
-    return isset($this) 
-      ? $this->_initInvoke((array)$arguments)
-      : static::__callStatic('invokeArgs', func_get_args());
-  }
-  
-  static public function __callStatic($method, $arguments)
-  {
-    $name = array_shift($arguments);
-    if ( ! isset($name))
-    {
-      throw new InvalidArgumentException(self::$_error_msg[ self::ERRNO_INVALID_NAME_FN ]);
-    }
-    
-    $initMethod = '_initover' . $method;
-    if (method_exists(__CLASS__, $initMethod))
-    {
-      $self = self::getInstance();
-      $args = $self->_parseArgs($arguments);
-      $fixedData = $self->_getFixedData($args[0], self::_fetchHash($name));
-      return $self->$initMethod($args[1], $fixedData);
-    }
-    
-    $initMethod = $method . 'to';
-    if (method_exists(__CLASS__, $initMethod))
-    {
-      $self = self::getInstance();
-      if (stripos($initMethod, 'args'))
-      {
-        $arguments[] = false;
-        $arguments = $self->_parseArgs($arguments);
-        $arguments = $arguments[0];
-      }
-      return $self->_initInvoke($arguments, self::_fetchHash($name));
-    }
-    throw new BadMethodCallException(self::$_error_msg[self::ERRNO_BAD_METH_CALL]);
   }
   
   /**
@@ -372,7 +384,7 @@ class PHP_Over
     if (is_callable($callable_or_strict_match))
     {
       $ride = $this->_edit_function($callable_or_strict_match, $fixedData);
-      if ( $ride instanceof LogicException )
+      if ($ride instanceof LogicException)
         throw $ride;
       
       return true;
@@ -798,10 +810,6 @@ class PHP_Over
     return $data;
   }
   
-  
-  
-  
-  
   /**
    * !
    * Метод возвращает экземпляр этого класса.
@@ -854,27 +862,5 @@ class PHP_Over
       self::$_list_of_hashes[ $str ] = sha1($str);
     }
     return self::$_list_of_hashes[ $str ];
-  }
-  
-  function debugTo()
-  {
-    echo "\npointers\n";
-    print_r( $this->_pointers_to_overloaded_function );
-    echo nl2br(str_repeat('+', 70) . PHP_EOL . PHP_EOL);
-    
-    echo "\nreflections\n";
-    print_r( $this->_reflections_of_overloaded_functions );
-    echo nl2br(str_repeat('+', 70) . PHP_EOL . PHP_EOL);
-  }
-  
-  static function debug()
-  {
-    echo "\npointers\n";
-    print_r( self::getInstance()->_pointers_to_overloaded_function );
-    echo nl2br(str_repeat('+', 70) . PHP_EOL . PHP_EOL);
-    
-    echo "\nreflections\n";
-    print_r( self::getInstance()->_reflections_of_overloaded_functions );
-    echo nl2br(str_repeat('+', 70) . PHP_EOL . PHP_EOL);
   }
 }
