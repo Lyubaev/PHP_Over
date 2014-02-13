@@ -4,11 +4,40 @@
  *
  * PHP version 5
  *
+ * Copyright (c) 2014, Kirill Lyubaev
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ * notice, this list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright
+ * notice, this list of conditions and the following disclaimer in the
+ * documentation and/or other materials provided with the distribution.
+ *
+ * 3. Neither the name of the copyright holder nor the names of its
+ * contributors may be used to endorse or promote products derived from
+ * this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR
+ * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
+ * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
  * @category  PHP
  * @package   PHP_Over
  * @author    Kirill Lyubaev <lubaev.ka@gmail.com>
  * @copyright 2014 Kirill Lyubaev
- * @license   http://www.opensource.org/licenses/lgpl-license.php LGPL
+ * @license   http://opensource.org/licenses/BSD-3-Clause BSD New
  * @link      http://pear.php.net/package/
  */
 /**
@@ -24,7 +53,7 @@ define('PHP_VERSION_LT54',
  * @package   PHP_Over
  * @author    Kirill Lyubaev <lubaev.ka@gmail.com>
  * @copyright 2014 Kirill Lyubaev
- * @license   http://www.opensource.org/licenses/lgpl-license.php LGPL
+ * @license   http://opensource.org/licenses/BSD-3-Clause BSD New
  * @version   Beta: 1.0
  * @link      http://pear.php.net/package/
  */
@@ -176,7 +205,8 @@ class PHP_Over
     const TYPE_ARRAY = 'array';
 
     /**
-     * Внутренний экзеипляр этого класса.
+     * Внутренний экземпляр этого класса.
+     *
      * Предназначен для статических вызовов в клиентском коде.
      *
      * @var self
@@ -257,15 +287,18 @@ class PHP_Over
     }
 
     /**
-     * Магический метод __callStatic перехватывает вызов недоступных статических
-     * методов класса.
+     * Магический метод __callStatic перехватывает вызов недоступных
+     * статических методов класса.
      *
      * @method TRUE load(mixed $alias, string|array $types, callable $callable)
      * Статический вариант метода PHP_Over::overload()
+     *
      * @method int ride(mixed $alias, string|array $types, callable|bool $cOrB)
      * Статический вариант метода PHP_Over::override()
+     *
      * @method mixed invoke($alias, mixed $arg)
      * Статический вариант метода PHP_Over::invokeTo()
+     *
      * @method mixed invokeArgs($alias, array $args)
      * Статический вариант метода PHP_Over::invokeArgsTo()
      *
@@ -274,10 +307,11 @@ class PHP_Over
      *                          переданные в вызываемый метод $method.
      *
      * @return mixed Возвращает результат выполнения перегруженного метода.
+     *
      * @throws InvalidArgumentException Исключение, если не указан псевдоним
      *                                  для регестрируемой функции.
-     * @throws BadMethodCallException Исключение, если вызов относится к
-     *                                неопределенному методу.
+     * @throws BadMethodCallException   Исключение, если вызов относится к
+     *                                  неопределенному методу.
      * @see PHP_Over::overload(), PHP_Over::override()
      * @see PHP_Over::invokeTo(), PHP_Over::invokeArgsTo()
      */
@@ -314,32 +348,13 @@ class PHP_Over
     }
 
     /**
-     * Метод регестрирует функцию, которая должна быть вызвана и выполнена
-     * по заданному количеству и типам аргументов.
+     * Метод регестрирует функцию, которая должна быть перегружена
+     * по заданному количеству аргументов, а также по указанным типам
+     * для заданных аргуметов.
      *
-     * Значения ожидаемых типов для аргументов могут быть следуюущими:
+     * Возможные значения типов для аргументов могут быть следуюущими:
      * string | %s | integer | int | %i | double | %d | float | %f | real
      * boolean | bool | %b | array | %a | object | %o | resource | %r
-     *
-     * <code>
-     * $closure1 = function() {
-     *   return 1;
-     * };
-     *
-     * $php_over = new PHP_Over();
-     *
-     * <p>Регестрирует замыкание без аргументов.</p>
-     * $php_over->overload($closure);
-     *
-     * <p>Регестрирует функцию с именем chmod, которая должна быть
-     * перегружена по двум параметрам, первый их которых имеет тип string,
-     * второй имеет тип integer.</p>
-     * $php_over->overload('%s', '%i', 'chmod');
-     *
-     * <p>Регестрирует функцию с именем strrev, которая должна быть
-     * перегружена по одному параметру тип которого string.</p>
-     * $php_over->overload(array('%s'), 'strrev');
-     * </code>
      *
      * @param array|string $types    Массив, либо ноль и более параметров
      *                               содержащий строковое значение ожидаемого
@@ -347,13 +362,17 @@ class PHP_Over
      *                               быть выполнена как перегруженная.
      * @param callable     $callable Значение, которое может быть вызвано.
      *
-     * @return self Этот метод возвращает TRUE, если регистрация прошла успешно.
+     * @return self|TRUE При вызове метода в контексте объект, возвращает
+     *                   объект, экземпляр этого класса. При вызове метода
+     *                   в контексте класса возвращает TRUE.
      *
      * @throws InvalidArgumentException Исключение если:
-     *         a). последний аргумент передаваемый в метод не может быть
-     *             вызван в качестве функции;
-     *         b). первый аргумент передаваемый в метод массив, а общее
-     *             количество передаваемых аргументов больше 2.
+     *                                  1). последний аргумент передаваемый
+     *                                      в метод не может быть вызван в
+     *                                      качестве функции;
+     *                                  2). первый аргумент передаваемый в
+     *                                      метод - массив, а общее количество
+     *                                      передаваемых аргументов больше 2.
      */
     public function overload()
     {
@@ -370,81 +389,105 @@ class PHP_Over
     }
 
     /**
-     * Этот метод позваляет переопределить либо удалить, в зависимости от типа и
+     * Метод позваляет переопределить либо удалить, в зависимости от типа и
      * количества передаваемых аргументов, ранее зарегестрированную функцию,
      * которая должна быть выполнена как перегруженная.
      *
-     * Для того, чтобы воспользоваться переопределением функции, последним
-     * аргументом передаваемым в метод должно быть значение типа "callable".
+     * Чтобы переопределить ранее зарегестрированную функцию, последним
+     * аргументом передаваемым в метод должно быть значение, которое может быть
+     * вызвано как функция.
      *
-     * Чтобы удалить ранее зарегестрированнцю функцию, последним аргументом
-     * передаваемым в метод должно быть значение типа "boolean".
+     * При попытке переопределить функцию, которая не была зарегестрирована
+     * ранее, будет выброшено исключение.
      *
-     * При отсутствии последнего аргумента, т.е. когда аргумент либо отсутствует,
-     * либо он имеет другой тип, отличный от типов "callable", "boolean" или
-     * "NULL", будет выполнено удаление ранее зарегестрированной функции.
+     * Чтобы удалить ранее зарегестрированную функцию, последним
+     * аргументом передаваемым в метод может быть TRUE, FALSE либо отсутствие
+     * аргумента. Последнее идентично значению TRUE.
      *
-     * Все аргументы, которые предшевствуют последнему аргументу, (если последний
-     * аргумент имеет тип "callable" или "boolean" или "NULL"), должны иметь тип
-     * "string" или "array".
+     * Все аргументы, которые предшествуют последнему аргументу
+     * (далее аргументы типов), либо все аргументы включительно, если
+     * последний аргумент отсутствует (например, при удалении), должны
+     * быть либо строкового типа, либо быть массивом, либо полное их отсутствие.
      *
-     * Предшествующие этому аргументу другие аргументы, если таковые имеются,
-     * должны содержать значения типов для аргументов функции, которая должна
-     * быть перегружена.
+     * Для удаления или переопределения функции, которая не принимала
+     * ни один аргумент, аргументы типов можно опустить.
      *
-     * Аргументы, которые предшевствуют последнему аргументу (если последний
-     * аргумент имеет тип "callable" или "boolean" или "NULL"), должны иметь тип
-     * "string" или "array".
-     *
-     * Если первый аргумент типа "string", то и все последующие аргументы, если
-     * таковые имеются, за исключением последнего аргумента, должны быть также
-     * типа "string". В противном случае будет выброшено исключение
-     * InvalidArgumentException.
-     *
-     * Если первый аргумент типа "array",
-     *
-     *
-     *
-     * Метод способен переопределить ранее добавленную (зарегестрированную)
-     * перегружаемую функцию. В этом случае значение $callableOrStrictMatch
-     * должно быть типа callable.
-     * Метод также позволяет удалить ранее добавленную перегружаемую функцию.
-     * В этом случае значение $callableOrStrictMatch должно быть типа boolean
-     * или NULL.
-     *
-     * Если второй аргумент опущен или установлен в true, то в этом случае будет
-     * удалена перегружаемая функция, которая строго соответствует количеству
-     * и типам указанных для аргументов.
      * Пример:
-     * PHP_Over::override(array("double"));
-     * PHP_Over::override(array("double"), true);
+     * $obj = new PHP_Over;
      *
-     * Два примера идентичны между собой и демонстрируют, как можно удалить
-     * ранее добавленную перегруженную функцию, которая принимала один аргумент
-     * типа double.
+     * Удалить функцию, перегружаемаю без аргументов.
+     * $obj->override();
      *
-     * Если второй аргумент установлен в false, то в этом случае будут удалены
-     * все ранее добавленные перегружаемые функции, начальная сигнатура которых
-     * соответствует типам указанных для аргументов, а количество принимаемых
-     * аргументов больше или равно количеству значений указанных в массиве
-     * $typesOfFunctionArguments.
+     * Удалить функцию, перегружаемаю без аргументов.
+     * $obj->override(true);
+     *
+     * Удалить все зарегестрированные функции в этом объекте,
+     * которые должны быт перегружены
+     * $obj->override(false);
+     *
+     * Переопределить функцию.
+     * $obj->override('zend_version');
+     *
+     * Количество аргументов типов соответствует количеству аргументов функции,
+     * а их значения должны указывать на тип аргументов функции, которая
+     * должна быть перегружена.
+     *
      * Пример:
-     * PHP_Over::override(array("string", "integer",), false);
+     * $obj = new PHP_Over;
      *
-     * В этом примере будут удалены все ранее добавленные перегружаемые функции,
-     * которые принимали два и более аргумента и типы двух первых аргументов,
-     * соответствуют указанным значениям типов для этих аргументов.
+     * Удалить ранее зарегестрированную функцию, которая принимала один
+     * аргумент типа string.
+     * $obj->override('string');
      *
-     * @param string[] $typesOfFunctionArguments Массив, содержащий значения
-     * типов для аргументов перегруженной функции.
-     * Порядок значений в массиве соответствует порядку аргументов перегруженной
-     * функции.
-     * @param callable|boolean $callableOrStrictMatch Значение, которое
-     * может быть вызвано или
-     * @return true|int Метод возвращает TRUE, в случае успешного
-     * переопределения ранее добавленной перегружаемой функции.
-     * В случае удаления метод возвращает число, количестов функций которых
-     * было удалено.
+     * Удалить все ранее зарегестрированные функции, которые принимали
+     * минимум один аргумент, и тип первого аргумента соответствует типу
+     * double.
+     * $obj->override('double', false);
+     *
+     * Переопределить ранее зарегестрированную функцию, которая принимала один
+     * аргумент типа array на функцию array_pop.
+     * $obj->override('array', 'array_pop');
+     *
+     *
+     * Аргументы типов можно передать в виде массива. В этом случае значения
+     * указывающие на тип для аргументов функции, должны быть перечислены
+     * в массиве, а сам массив должен быть единственным аргументом из аргументов
+     * типа.
+     *
+     * Пример:
+     * $obj = new PHP_Over;
+     *
+     * Удалить ранее зарегестрированную функцию, которая принимала один
+     * аргумент типа string.
+     * $obj->override(array('string'));
+     *
+     * Удалить все ранее зарегестрированные функции, которые принимали
+     * минимум два аргумента, где тип первого аргумента соответствует типу
+     * object, тип второго аргумента соответствует типу bool.
+     * $obj->override(array('object','bool'), false);
+     *
+     * Переопределить ранее зарегестрированную функцию, которая принимала один
+     * аргумент типа array на функцию array_pop.
+     * $obj->override(array('array'), 'array_pop');
+     *
+     * Если первым аргументом передан массив, то следующим аргументом
+     * за ним долен быть аргумент тип которого соответствует типам callable
+     * или boolean, либо отсутутствие аргумента. В остальных случаях
+     * будет выброшено исключение, сообщающее о непраильном списке
+     * аргументов.
+     *
+     * @param array|string  $types      Массив, либо ноль и более параметров
+     *                                  содержащий строковое значение ожидаемого
+     *                                  типа для аргументов функции, которая
+     *                                  должна быть выполнена как перегруженная.
+     * @param callable|bool $callOrBool Значение, которое может быть вызвано,
+     *                                  либо TRUE или FALSE.
+     *
+     * @return self|int|TRUE При вызове метода в контексте объект, возвращает
+     *                       объект, экземпляр этого класса. При вызове метода
+     *                       в контексте класса возвращает число функций,
+     *                       которые были удалены, либо TRUE при
+     *                       переопределении функции.
      */
     public function override()
     {
@@ -452,7 +495,7 @@ class PHP_Over
             $args      = $this->_parseArgs(func_get_args());
             $fixedData = $this->_getFixedData($args[0], null);
 
-            $result = $this->_initOverride($args[1], $fixedData);
+            $this->_initOverride($args[1], $fixedData);
 
             return $this;
         }
@@ -461,11 +504,10 @@ class PHP_Over
     }
 
     /**
-     * !
      * Инициирует вызов зарегестрированной функции.
      *
-     * @param mixed Ноль или более параметров, передаваемые в зарегестрированную
-     * функцию.
+     * @param mixed  Ноль или более параметров, передаваемые в
+     *               зарегестрированную функцию.
      *
      * @return mixed Возвращает результат выполнения зарегестрированной функции.
      */
@@ -476,8 +518,7 @@ class PHP_Over
     }
 
     /**
-     * !
-     * Инициирует вызов зарегестрированной функции.
+     * Инициирует вызов зарегестрированной функции с массивом параметров.
      *
      * @param array $arguments Передаваемые в функцию параметры в виде массива.
      *
@@ -490,12 +531,11 @@ class PHP_Over
     }
 
     /**
-     * !
      * Магический метод __invoke перехватывает вызов объекта как функции и
      * инициирует вызов зарегестрированной функции.
      *
-     * @param mixed Ноль или более параметров, передаваемые в зарегестрированную
-     * функцию.
+     * @param mixed  Ноль или более параметров, передаваемые в
+     *               зарегестрированную функцию.
      *
      * @return mixed Возвращает результат выполнения зарегестрированной функции.
      */
@@ -506,11 +546,19 @@ class PHP_Over
 
     /**
      * Метод разбирает аргументы, передаваемые в методы overload и override.
-     * Возвращает массив,
      *
-     * @param array $arguments
-     * @return array
-     * @throws InvalidArgumentException
+     * Возвращает массив с индексами 0 и 1.
+     * Значение с индексом 0 это массив указанных типов для аргументов функции.
+     * Значение с индексом 1 это одно из значений типа callable, boolean, NULL.
+     *
+     * @param array $arguments Аргумент, которые были приняты
+     *                         методом overload или override.
+     *
+     * @return array Возвращает массив с индексами 0 и 1.
+     *
+     * @throws InvalidArgumentException Исключение если:
+     *                                  1). список разбираемых аргументов
+     *                                      составлен неверно;
      */
     private function _parseArgs(array $arguments)
     {
