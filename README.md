@@ -1,4 +1,4 @@
-# PHP Super Closure
+# PHPOver
 
 [![Latest Stable Version](https://poser.pugx.org/jeremeamia/superclosure/v/stable.png)](https://packagist.org/packages/jeremeamia/superclosure)
 [![Total Downloads](https://poser.pugx.org/jeremeamia/superclosure/downloads.png)](https://packagist.org/packages/jeremeamia/superclosure)
