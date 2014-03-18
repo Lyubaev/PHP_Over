@@ -53,13 +53,12 @@ define('PHP_VERSION_LT54',
  * функция, и которое должно быть перегружено по типу и/или количеству
  * аргументов.
  *
- * Перегрузка функций - это механизи, который позваляет двум
- * родственным функциям иметь одинаковые имена.
  * PHP не поддерживает перегрузку функции, также отсутствует возможность
  * переопределить или удалить объявленную ранее функцию, поэтому класс
- * PHP_Over лишь имитирует все эти процессы функции, используя ОО возможности.
+ * PHP_Over лишь имитирует эти процессы функции, используя
+ * объектно-ореинтированные возможности языка.
  *
- * Скорость выполнения перегрузки во время вызова ниже, чем вызов
+ * Скорость выполнения перегруженной функции ниже, чем вызов
  * реальной функции
  *
  * Определение того, какую версию перегруженной функции вызвать,
@@ -110,172 +109,116 @@ define('PHP_VERSION_LT54',
 class PHP_Over
 {
     /**
-     * Номер ошибки.
-     *
-     * Аргумент не может быть вызван в качестве функции.
-     * @var int
+     * @var int Аргумент не может быть вызван в качестве функции.
      */
     const ERRNO_ARG_NOT_CALLABLE = 0x1;
 
     /**
-     * Номер ошибки.
-     *
-     * Аргумент фунции не может быть необязательным.
-     * @var int
+     * @var int Аргумент фунции не может быть необязательным.
      */
     const ERRNO_IS_OPTIONAL_ARGS = 0x2;
 
     /**
-     * Номер ошибки.
-     *
-     * Количество аргументов и количество указанных типов не совпадает.
-     * @var int
+     * @var int Количество аргументов и количество указанных типов не совпадает.
      */
     const ERRNO_INVALID_SIZE_ARG = 0x3;
 
     /**
-     * Номер ошибки.
-     *
-     * Порядок аргументов функции указан неверно.
-     * @var int
+     * @var int Порядок аргументов функции указан неверно.
      */
     const ERRNO_INVALID_ARG_LIST = 0x4;
 
     /**
-     * Номер ошибки.
-     *
-     * Указанный тип для аргумента не соответствует ожидаемому типу.
-     * @var int
+     * @var int Указанный тип для аргумента не соответствует ожидаемому типу.
      */
     const ERRNO_INVALID_ARG_TYPE = 0x5;
 
     /**
-     * Номер ошибки.
-     *
-     * Указанный тип для аргумента неподдерживается.
-     * @var int
+     * @var int Указанный тип для аргумента неподдерживается.
      */
     const ERRNO_INVALID_VAL_TYPE = 0x6;
 
     /**
-     * Номер ошибки.
-     *
-     * Невалидный псевдоним функции.
-     * @var int
+     * @var int Невалидный псевдоним функции.
      */
     const ERRNO_INVALID_NAME_FN = 0x7;
 
     /**
-     * Номер ошибки.
-     *
-     * Указанный тип для аргумента должен быть строкой.
-     * @var int
+     * @var int Указанный тип для аргумента должен быть строкой.
      */
     const ERRNO_ARGS_NOT_STRING = 0x8;
 
     /**
-     * Номер ошибки.
-     *
-     * Переопределение неизвестной функции.
-     * @var int
+     * @var int Переопределение неизвестной функции.
      */
     const ERRNO_OVERLOAD_NEXIST = 0x9;
 
     /**
-     * Номер ошибки.
-     *
-     * Функция уже была определена ранее.
-     * @var int
+     * @var int Функция уже была определена ранее.
      */
     const ERRNO_OVERLOAD_EXIST = 0xa;
 
     /**
-     * Номер ошибки.
-     *
-     * Вызов неопределенной ранее функции.
-     * @var int
+     * @var int Вызов неопределенной ранее функции.
      */
     const ERRNO_BAD_FUNC_CALL = 0xb;
 
     /**
-     * Номер ошибки.
-     *
-     * Вызов неопределенного метода.
-     * @var int
+     * @var int Вызов неопределенного метода.
      */
     const ERRNO_BAD_METH_CALL = 0xc;
 
     /**
-     * Строковое представление типа.
-     *
-     * @var string
+     * @var string Строковое представление типа.
      */
     const TYPE_RESOURCE = 'resource';
 
     /**
-     * Строковое представление типа.
-     *
-     * @var string
+     * @var string Строковое представление типа.
      */
     const TYPE_BOOLEAN = 'boolean';
 
     /**
-     * Строковое представление типа.
-     *
-     * @var string
+     * @var string Строковое представление типа.
      */
     const TYPE_INTEGER = 'integer';
 
     /**
-     * Строковое представление типа.
-     *
-     * @var string
+     * @var string Строковое представление типа.
      */
     const TYPE_DOUBLE = 'double';
 
     /**
-     * Строковое представление типа.
-     *
-     * @var string
+     * @var string Строковое представление типа.
      */
     const TYPE_STRING = 'string';
 
     /**
-     * Строковое представление типа.
-     *
-     * @var string
+     * @var string Строковое представление типа.
      */
     const TYPE_OBJECT = 'object';
 
     /**
-     * Строковое представление типа.
-     *
-     * @var string
+     * @var string Строковое представление типа.
      */
     const TYPE_ARRAY = 'array';
 
     /**
-     * Внутренний экземпляр этого класса.
-     *
      * Предназначен для статических вызовов в клиентском коде.
      *
-     * @var self
+     * @var self Экземпляр этого класса.
      */
     static private $_instance;
 
     /**
      * Хэш массив используемых псевдонимов функций.
      *
-     * Содержит псевдоним функции и его хэш строку.
-     *
-     * @var array
+     * @var array Содержит псевдоним функции и его хэш строку.
      */
     static private $_listOfHashes;
 
     /**
-     * Словарь сообщений об ошибках при работе класса.
-     *
-     * @var array
+     * @var array Словарь сообщений об ошибках при работе класса.
      */
     static private $_errorMsg = array(
         1  => 'Переданный аргумент должен быть типа callable',
@@ -293,9 +236,7 @@ class PHP_Over
     );
 
     /**
-     * Текущий номер указателя.
-     *
-     * @var int
+     * @var int Текущий номер указателя.
      */
     private $_indexOfPointers;
 
@@ -755,20 +696,23 @@ class PHP_Over
      */
     private function _initInvoke(array $arguments, $hash = null)
     {
+        $typesOfFunctionArguments = array();
+        $endNull                  = true;
+
         $arguments = array_values($arguments);
         $i         = sizeof($arguments);
-        while ($i-- && $arguments[$i] === null) {
-            array_splice($arguments, $i, 1);
-        }
 
-        $typesOfFunctionArguments = array();
-        ++$i;
         while ($i--) {
-            $typesOfFunctionArguments[] = gettype($arguments[$i]);
+            if ($endNull && $arguments[$i] === null) {
+                array_slice($arguments, $i, 1);
+                continue;
+            }
+
+            $typesOfFunctionArguments[$i] = gettype($arguments[$i]);
+            $endNull                      = false;
         }
 
-        $fixedData = $this->_getFixedData(array_reverse($typesOfFunctionArguments),
-            $hash);
+        $fixedData = $this->_getFixedData($typesOfFunctionArguments, $hash);
         $pointerId = $this->_getPointer($fixedData,
             $this->_pointersToOverloadedFunction);
 
@@ -1161,10 +1105,8 @@ class PHP_Over
             return false;
         }
 
-        if (!PHP_VERSION_LT54 && $parameter->isCallable()
-            && $typeOfArg !== self::TYPE_OBJECT
-            && $typeOfArg !== self::TYPE_STRING
-            && $typeOfArg !== self::TYPE_ARRAY
+        if (!PHP_VERSION_LT54 && $parameter->isCallable() && $typeOfArg !== self::TYPE_OBJECT
+            && $typeOfArg !== self::TYPE_STRING && $typeOfArg !== self::TYPE_ARRAY
         ) {
             return false;
         }
