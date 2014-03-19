@@ -4,6 +4,12 @@
  * функция, по заданному количеству и/или значению типа аргумента,
  * которое должно быть перегружено в процессе вызова.
  *
+ * Скорость выполнения перегруженной функции ниже, чем вызов
+ * реальной функции, поэтому данный класс рекомендованно использовать
+ * в ознокомительных, поучительных и развлекательных целях.
+ * Если PHP_Over класс будет полезен в реальных проектах, мне было бы приятно
+ * узнать об этом.
+ *
  * PHP version 5
  *
  * Copyright (c) 2014, Kirill Lyubaev
@@ -58,9 +64,6 @@ define('PHP_VERSION_LT54',
  * PHP_Over лишь имитирует эти процессы функции, используя
  * объектно-ореинтированные возможности языка.
  *
- * Скорость выполнения перегруженной функции ниже, чем вызов
- * реальной функции
- *
  * Определение того, какую версию перегруженной функции вызвать,
  * происходит непосредственно в момент вызова, исходя из типа
  * и/или количества аргументов.
@@ -94,9 +97,6 @@ define('PHP_VERSION_LT54',
  * Если в сигнатуре callback указан принимаемый тип значения,
  * (например array или callable PHP 5.4), то значение типа должно
  * соответствовать этому значению.
- *
- *
- *
  *
  * @category  PHP
  * @package   PHP_Over
@@ -311,7 +311,8 @@ class PHP_Over
         $name = array_shift($arguments);
 
         if (!isset($name)) {
-            throw new InvalidArgumentException(self::$_errorMsg[self::ERRNO_INVALID_NAME_FN]);
+            throw new InvalidArgumentException(
+            self::$_errorMsg[self::ERRNO_INVALID_NAME_FN]);
         }
 
         $initMethod = "_initover{$method}";
@@ -335,7 +336,8 @@ class PHP_Over
             return $self->_initInvoke($arguments, self::_fetchHash($name));
         }
 
-        throw new BadMethodCallException(self::$_errorMsg[self::ERRNO_BAD_METH_CALL]);
+        throw new BadMethodCallException(
+        self::$_errorMsg[self::ERRNO_BAD_METH_CALL]);
     }
 
     /**
@@ -368,10 +370,10 @@ class PHP_Over
     public function overload()
     {
         if (isset($this)) {
-            $args      = $this->_parseArgs(func_get_args());
-            $fixedData = $this->_getFixedData($args[0], null);
+            list($types, $callable) = $this->_parseArgs(func_get_args());
+            $fixedData = $this->_getFixedData($types, null);
 
-            $this->_initOverload($args[1], $fixedData);
+            $this->_initOverload($callable, $fixedData);
 
             return $this;
         }
@@ -483,10 +485,10 @@ class PHP_Over
     public function override()
     {
         if (isset($this)) {
-            $args      = $this->_parseArgs(func_get_args());
-            $fixedData = $this->_getFixedData($args[0], null);
+            list($types, $callOrBool) = $this->_parseArgs(func_get_args());
+            $fixedData = $this->_getFixedData($types, null);
 
-            $this->_initOverride($args[1], $fixedData);
+            $this->_initOverride($callOrBool, $fixedData);
 
             return $this;
         }
@@ -504,8 +506,9 @@ class PHP_Over
      */
     public function invokeTo()
     {
-        return isset($this) ? $this->_initInvoke(func_get_args()) : static::__callStatic('invoke',
-                func_get_args());
+        return isset($this) ?
+            $this->_initInvoke(func_get_args()) :
+            static::__callStatic('invoke', func_get_args());
     }
 
     /**
@@ -517,8 +520,9 @@ class PHP_Over
      */
     public function invokeArgsTo(array $arguments = null)
     {
-        return isset($this) ? $this->_initInvoke((array) $arguments) : static::__callStatic('invokeargs',
-                func_get_args());
+        return isset($this) ?
+            $this->_initInvoke((array) $arguments) :
+            static::__callStatic('invokeargs', func_get_args());
     }
 
     /**
@@ -575,7 +579,7 @@ class PHP_Over
     }
 
     /**
-     * Низкоуровневый метод регистрации функции, которая должна быть
+     * Внутренний метод регистрации функции, которая должна быть
      * перегружена.
      *
      * @param callable      $callable  Значение, которое может быть вызвано.
@@ -637,7 +641,7 @@ class PHP_Over
     }
 
     /**
-     * Низкоуровневый метод переопределения функции, которая должна быть
+     * Внутренний метод переопределения функции, которая должна быть
      * перегружена.
      *
      * @param callable|boolean|NULL $callableOrStrictMatch Значение которое
@@ -675,7 +679,7 @@ class PHP_Over
     }
 
     /**
-     * Низкоуровневый метод вызывающий зарегестрированную функцию с массивом
+     * Внутренний метод вызывающий зарегестрированную функцию с массивом
      * параметоров, по заданному количеству и значениям типов этих
      * параметов.
      *
@@ -696,30 +700,31 @@ class PHP_Over
      */
     private function _initInvoke(array $arguments, $hash = null)
     {
-        $typesOfFunctionArguments = array();
-        $endNull                  = true;
-
+        $fixedData = new SplFixedArray();
         $arguments = array_values($arguments);
         $i         = sizeof($arguments);
 
         while ($i--) {
-            if ($endNull && $arguments[$i] === null) {
-                array_slice($arguments, $i, 1);
+            if ($arguments[$i] === null) {
+                array_pop($arguments);
                 continue;
             }
 
-            $typesOfFunctionArguments[$i] = gettype($arguments[$i]);
-            $endNull                      = false;
+            $fixedData->setSize(1 + $i);
+            do {
+                $fixedData[$i] = gettype($arguments[$i]);
+            } while ($i > 0 && $i--);
         }
 
-        $fixedData = $this->_getFixedData($typesOfFunctionArguments, $hash);
+        $fixedData->hash = $hash;
+        $fixedData->size = $fixedData->getSize();
+
         $pointerId = $this->_getPointer($fixedData,
             $this->_pointersToOverloadedFunction);
 
         if ($pointerId && $this->_reflectionsOfOverloadedFunctions->contains($pointerId)) {
 
             $reflectionData = $this->_reflectionsOfOverloadedFunctions->offsetGet($pointerId);
-            $reflectionFunc = $reflectionData[0];
 
             if (isset($reflectionData['ByRef'])) {
                 foreach ($reflectionData['ByRef'] as $num) {
@@ -727,15 +732,16 @@ class PHP_Over
                 }
             }
 
-            return ($reflectionFunc instanceof ReflectionMethod) ? $reflectionFunc->invokeArgs($reflectionData[1],
-                    $arguments) : $reflectionFunc->invokeArgs($arguments);
+            return ($reflectionData[0] instanceof ReflectionFunction) ?
+                $reflectionData[0]->invokeArgs($arguments) :
+                $reflectionData[0]->invokeArgs($reflectionData[1], $arguments);
         }
 
         throw new BadFunctionCallException(self::$_errorMsg[self::ERRNO_BAD_FUNC_CALL]);
     }
 
     /**
-     * Низкоуровневый метод создает новый указатель на функцию, которая
+     * Внутренний метод создает новый указатель на функцию, которая
      * должна быть перегружена, и производит попытку установить указатель.
      *
      * @param array         $reflectionData Массив, содержащий отражение
@@ -765,9 +771,8 @@ class PHP_Over
     }
 
     /**
-     * Низкоуровневый метод удаляет указатель на функцию,
-     * которая должна быть перегружена, а также данные отражения, которые
-     * связаны с этим указателем.
+     * Внутренний метод удаляет указатель на функцию, которая должна быть
+     * перегружена, а также данные отражения, которые связаны с этим указателем.
      *
      * В зависимости от параметра $strictMatchTypes метод находит указатель,
      * либо группу указаетлей, если он(и) установлены.
@@ -825,7 +830,7 @@ class PHP_Over
     }
 
     /**
-     * Низкоуровневый метод предпринимает попытку переопределить ранее
+     * Внутренний метод предпринимает попытку переопределить ранее
      * зарегестрированную функцию на новую, и регистрирует ее в случае
      * успеха.
      *
@@ -1081,9 +1086,10 @@ class PHP_Over
             $callable = explode('::', $callable);
         }
 
-        return is_array($callable) ? array(new ReflectionMethod($callable[0],
-                $callable[1]),
-            is_string($callable[0]) ? null : $callable[0]) : array(new ReflectionFunction($callable));
+        return is_array($callable) ?
+            array(new ReflectionMethod($callable[0], $callable[1]),
+            !is_string($callable[0]) ? $callable[0] : null) :
+            array(new ReflectionFunction($callable));
     }
 
     /**
