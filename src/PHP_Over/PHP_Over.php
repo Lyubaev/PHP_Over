@@ -5,8 +5,8 @@
  * которое должно быть перегружено в процессе вызова.
  *
  * Скорость выполнения перегруженной функции ниже, чем вызов
- * реальной функции, поэтому данный класс рекомендованно использовать
- * в ознокомительных, поучительных и развлекательных целях.
+ * реальной функции, поэтому данный класс рекомендовано использовать
+ * в ознакомительных, поучительных и развлекательных целях.
  * Если PHP_Over класс будет полезен в реальных проектах, мне было бы приятно
  * узнать об этом.
  *
@@ -46,13 +46,14 @@
  * @author    Kirill Lyubaev <lubaev.ka@gmail.com>
  * @copyright 2014 Kirill Lyubaev
  * @license   http://opensource.org/licenses/BSD-3-Clause BSD New
- * @link      http://pear.php.net/package/
+ * @link      https://github.com/lubaev/PHP_Over
  */
 /**
  * TRUE если текущая версия PHP ниже версии 5.4
  */
-define('PHP_VERSION_LT54',
-    version_compare(PHP_VERSION, '5.4', '<') ? true : false);
+define(
+    'PHP_VERSION_LT54', version_compare(PHP_VERSION, '5.4', '<') ? true : false
+);
 
 /**
  * PHP_Over регистрирует значение, которое может быть вызвано как
@@ -62,24 +63,25 @@ define('PHP_VERSION_LT54',
  * PHP не поддерживает перегрузку функции, также отсутствует возможность
  * переопределить или удалить объявленную ранее функцию, поэтому класс
  * PHP_Over лишь имитирует эти процессы функции, используя
- * объектно-ореинтированные возможности языка.
+ * объектно-ориентированные возможности языка.
  *
  * Определение того, какую версию перегруженной функции вызвать,
  * происходит непосредственно в момент вызова, исходя из типа
  * и/или количества аргументов.
  *
- * Значение, которое может быть вызванно, должно быть типа callable
+ * Значение, которое может быть вызвано, должно быть типа callable
  * (далее callback).
  * Смотри ({@link http://php.net/manual/en/language.types.callable.php
  * callable}).
  *
  * Значение типа должно быть указанно в виде строки в нижнем регистре.
  * Значением типа может быть любое значение поддерживаемого типа PHP,
- * исключая тип NULL и псевдотипы.
+ * исключая тип NULL и псевдо типы.
  * Смотри ({@link http://php.net/manual/en/language.types.intro.php types}).
  *
- * Значением типа может быть псевдоним реального значения типа (псевдозначение).
- * Список значений и их псевдозначений:
+ * Значением типа может быть псевдоним реального значения типа
+ * (псевдо значение).
+ * Список значений и их псевдо значений:
  * boolean  | bool | %b
  * integer  | int  | %i
  * double   | real | float | %d | %f
@@ -103,8 +105,7 @@ define('PHP_VERSION_LT54',
  * @author    Kirill Lyubaev <lubaev.ka@gmail.com>
  * @copyright 2014 Kirill Lyubaev
  * @license   http://opensource.org/licenses/BSD-3-Clause BSD New
- * @version   Beta: 1.0
- * @link      http://pear.php.net/package/
+ * @link      https://github.com/lubaev/PHP_Over
  */
 class PHP_Over
 {
@@ -114,7 +115,7 @@ class PHP_Over
     const ERRNO_ARG_NOT_CALLABLE = 0x1;
 
     /**
-     * @var int Аргумент фунции не может быть необязательным.
+     * @var int Аргумент функции не может быть необязательным.
      */
     const ERRNO_IS_OPTIONAL_ARGS = 0x2;
 
@@ -134,7 +135,7 @@ class PHP_Over
     const ERRNO_INVALID_ARG_TYPE = 0x5;
 
     /**
-     * @var int Указанный тип для аргумента неподдерживается.
+     * @var int Указанный тип для аргумента не поддерживается.
      */
     const ERRNO_INVALID_VAL_TYPE = 0x6;
 
@@ -241,14 +242,14 @@ class PHP_Over
     private $_indexOfPointers;
 
     /**
-     * Содержит указатели на зарегестрированные функции.
+     * Содержит указатели на зарегистрированные функции.
      *
      * Структура этого массива многомерна. Индекс первого измерения
-     * соответствует количеству аргументов регестрируемой функции.
+     * соответствует количеству аргументов регистрируемой функции.
      * Количество вложенных измерений равно количеству аргументов функции.
-     * Каждый индекс вложенного измерения содержит тип аргумента регестрируемой
-     * функции. Первое вложенное измрение это первый аргумент, второе измерение
-     * это второй аргумент и т.д. Значением последненго измерения будет
+     * Каждый индекс вложенного измерения содержит тип аргумента регистрируемой
+     * функции. Первое вложенное измерение это первый аргумент, второе измерение
+     * это второй аргумент и т.д. Значением последнего измерения будет
      * указатель. Указатель это объект класса stdClass, внутри которого
      * содержится номер (идентификатор) указателя.
      *
@@ -259,9 +260,9 @@ class PHP_Over
     /**
      * Соответствие объекты-данные.
      *
-     * В роли объектов выступают указатели на зарегестрированную функцию.
-     * В роли данных выступает массив, содержащий отражение зарегестрированной
-     * функции, а также дополниельные данные, которые необходимы для ее вызова.
+     * В роли объектов выступают указатели на зарегистрированную функцию.
+     * В роли данных выступает массив, содержащий отражение зарегистрированной
+     * функции, а также дополнительные данные, которые необходимы для ее вызова.
      *
      * @var SplObjectStorage
      */
@@ -300,7 +301,7 @@ class PHP_Over
      * @return mixed Возвращает результат выполнения перегруженного метода.
      *
      * @throws InvalidArgumentException Исключение, если не указан псевдоним
-     *                                  для регестрируемой функции.
+     *                                  для регистрируемой функции.
      * @throws BadMethodCallException   Исключение, если вызов относится к
      *                                  неопределенному методу.
      * @see PHP_Over::overload(), PHP_Over::override()
@@ -312,14 +313,17 @@ class PHP_Over
 
         if (!isset($name)) {
             throw new InvalidArgumentException(
-            self::$_errorMsg[self::ERRNO_INVALID_NAME_FN]);
+            self::$_errorMsg[self::ERRNO_INVALID_NAME_FN]
+            );
         }
 
         $initMethod = "_initover{$method}";
         if (method_exists(__CLASS__, $initMethod)) {
             $self      = self::_getInstance();
             $args      = $self->_parseArgs($arguments);
-            $fixedData = $self->_getFixedData($args[0], self::_fetchHash($name));
+            $fixedData = $self->_getFixedData(
+                $args[0], self::_fetchHash($name)
+            );
 
             return $self->$initMethod($args[1], $fixedData);
         }
@@ -337,17 +341,20 @@ class PHP_Over
         }
 
         throw new BadMethodCallException(
-        self::$_errorMsg[self::ERRNO_BAD_METH_CALL]);
+        self::$_errorMsg[self::ERRNO_BAD_METH_CALL]
+        );
     }
 
     /**
-     * Метод регестрирует функцию, которая должна быть перегружена
+     * Метод регистрирует функцию, которая должна быть перегружена
      * по заданному количеству аргументов, а также по указанным типам
-     * для заданных аргуметов.
+     * для заданных аргументов.
      *
-     * Возможные значения типов для аргументов могут быть следуюущими:
+     * Возможные значения типов для аргументов могут быть следующими:
+     * <pre>
      * string | %s | integer | int | %i | double | %d | float | %f | real
      * boolean | bool | %b | array | %a | object | %o | resource | %r
+     * </pre>
      *
      * @param array|string $types    Массив, либо ноль и более параметров
      *                               содержащий строковое значение ожидаемого
@@ -382,18 +389,18 @@ class PHP_Over
     }
 
     /**
-     * Метод позваляет переопределить либо удалить, в зависимости от типа и
-     * количества передаваемых аргументов, ранее зарегестрированную функцию,
+     * Метод позволяет переопределить либо удалить, в зависимости от типа и
+     * количества передаваемых аргументов, ранее зарегистрированную функцию,
      * которая должна быть выполнена как перегруженная.
      *
-     * Чтобы переопределить ранее зарегестрированную функцию, последним
+     * Чтобы переопределить ранее зарегистрированную функцию, последним
      * аргументом передаваемым в метод должно быть значение, которое может быть
      * вызвано как функция.
      *
-     * При попытке переопределить функцию, которая не была зарегестрирована
+     * При попытке переопределить функцию, которая не была зарегистрирована
      * ранее, будет выброшено исключение.
      *
-     * Чтобы удалить ранее зарегестрированную функцию, последним
+     * Чтобы удалить ранее зарегистрированную функцию, последним
      * аргументом передаваемым в метод может быть TRUE, FALSE либо отсутствие
      * аргумента. Последнее идентично значению TRUE.
      *
@@ -408,13 +415,13 @@ class PHP_Over
      * Пример:
      * $obj = new PHP_Over;
      *
-     * Удалить функцию, перегружаемаю без аргументов.
+     * Удалить функцию, перегружаемою без аргументов.
      * $obj->override();
      *
-     * Удалить функцию, перегружаемаю без аргументов.
+     * Удалить функцию, перегружаемою без аргументов.
      * $obj->override(true);
      *
-     * Удалить все зарегестрированные функции в этом объекте,
+     * Удалить все зарегистрированные функции в этом объекте,
      * которые должны быт перегружены.
      * $obj->override(false);
      *
@@ -428,16 +435,16 @@ class PHP_Over
      * Пример:
      * $obj = new PHP_Over;
      *
-     * Удалить ранее зарегестрированную функцию, которая принимала один
+     * Удалить ранее зарегистрированную функцию, которая принимала один
      * аргумент типа string.
      * $obj->override('string');
      *
-     * Удалить все ранее зарегестрированные функции, которые принимали
+     * Удалить все ранее зарегистрированные функции, которые принимали
      * минимум один аргумент, и тип первого аргумента соответствует типу
      * double.
      * $obj->override('double', false);
      *
-     * Переопределить ранее зарегестрированную функцию, которая принимала один
+     * Переопределить ранее зарегистрированную функцию, которая принимала один
      * аргумент типа array на функцию array_pop.
      * $obj->override('array', 'array_pop');
      *
@@ -450,23 +457,23 @@ class PHP_Over
      * Пример:
      * $obj = new PHP_Over;
      *
-     * Удалить ранее зарегестрированную функцию, которая принимала один
+     * Удалить ранее зарегистрированную функцию, которая принимала один
      * аргумент типа string.
      * $obj->override(array('string'));
      *
-     * Удалить все ранее зарегестрированные функции, которые принимали
+     * Удалить все ранее зарегистрированные функции, которые принимали
      * минимум два аргумента, где тип первого аргумента соответствует типу
      * object, тип второго аргумента соответствует типу bool.
      * $obj->override(array('object','bool'), false);
      *
-     * Переопределить ранее зарегестрированную функцию, которая принимала один
+     * Переопределить ранее зарегистрированную функцию, которая принимала один
      * аргумент типа array на функцию array_pop.
      * $obj->override(array('array'), 'array_pop');
      *
      * Если первым аргументом передан массив, то следующим аргументом
      * за ним долен быть аргумент тип которого соответствует типам callable
-     * или boolean, либо отсутутствие аргумента. В остальных случаях
-     * будет выброшено исключение, сообщающее о непраильном списке
+     * или boolean, либо отсутствие аргумента. В остальных случаях
+     * будет выброшено исключение, сообщающее о неправильном списке
      * аргументов.
      *
      * @param array|string  $types      Массив, либо ноль и более параметров
@@ -497,12 +504,12 @@ class PHP_Over
     }
 
     /**
-     * Инициирует вызов зарегестрированной функции.
+     * Инициирует вызов зарегистрированной функции.
      *
      * @param mixed  Ноль или более параметров, передаваемые в
-     *               зарегестрированную функцию.
+     *               зарегистрированную функцию.
      *
-     * @return mixed Возвращает результат выполнения зарегестрированной функции.
+     * @return mixed Возвращает результат выполнения зарегистрированной функции.
      */
     public function invokeTo()
     {
@@ -512,7 +519,7 @@ class PHP_Over
     }
 
     /**
-     * Инициирует вызов зарегестрированной функции с массивом параметров.
+     * Инициирует вызов зарегистрированной функции с массивом параметров.
      *
      * @param array $arguments Передаваемые в функцию параметры в виде массива.
      *
@@ -527,12 +534,12 @@ class PHP_Over
 
     /**
      * Магический метод __invoke перехватывает вызов объекта как функции и
-     * инициирует вызов зарегестрированной функции.
+     * инициирует вызов зарегистрированной функции.
      *
      * @param mixed  Ноль или более параметров, передаваемые в
-     *               зарегестрированную функцию.
+     *               зарегистрированную функцию.
      *
-     * @return mixed Возвращает результат выполнения зарегестрированной функции.
+     * @return mixed Возвращает результат выполнения зарегистрированной функции.
      */
     public function __invoke()
     {
@@ -569,7 +576,9 @@ class PHP_Over
         if (isset($arguments[0]) && is_array($arguments[0])) {
 
             if (array_key_exists(1, $arguments)) {
-                throw new InvalidArgumentException(self::$_errorMsg[self::ERRNO_INVALID_ARG_LIST]);
+                throw new InvalidArgumentException(
+                self::$_errorMsg[self::ERRNO_INVALID_ARG_LIST]
+                );
             }
 
             $ret[0] = $arguments[0];
@@ -589,11 +598,11 @@ class PHP_Over
      * @return TRUE Возвращает TRUE в случае успеха.
      *
      * @throws LogicException Исключение если:
-     *                        1). аргумент регестрируемой функции,
+     *                        1). аргумент регистрируемой функции,
      *                            является необязательным;
-     *                        2). количество аргументов регестрируемой функции
+     *                        2). количество аргументов регистрируемой функции
      *                            и количество указанных типов не соответствует;
-     *                        3). регестрируемая функция уже была определена
+     *                        3). регистрируемая функция уже была определена
      *                            ранее.
      * @throws DomainException Исключение если:
      *                         1). указанный тип для аргумента
@@ -602,18 +611,26 @@ class PHP_Over
     private function _initOverload($callable, SplFixedArray $fixedData)
     {
         if (!is_callable($callable)) {
-            throw new InvalidArgumentException(self::$_errorMsg[self::ERRNO_ARG_NOT_CALLABLE]);
+            throw new InvalidArgumentException(
+            self::$_errorMsg[self::ERRNO_ARG_NOT_CALLABLE]
+            );
         }
 
         $reflectionData = $this->_getDataReflection($callable);
         $reflectionFunc = $reflectionData[0];
 
-        if ($reflectionFunc->getNumberOfParameters() > $reflectionFunc->getNumberOfRequiredParameters()) {
-            throw new LogicException(self::$_errorMsg[self::ERRNO_IS_OPTIONAL_ARGS]);
+        if ($reflectionFunc->getNumberOfParameters()
+            > $reflectionFunc->getNumberOfRequiredParameters()
+        ) {
+            throw new LogicException(
+            self::$_errorMsg[self::ERRNO_IS_OPTIONAL_ARGS]
+            );
         }
 
         if ($reflectionFunc->getNumberOfParameters() <> $fixedData->size) {
-            throw new LogicException(self::$_errorMsg[self::ERRNO_INVALID_SIZE_ARG]);
+            throw new LogicException(
+            self::$_errorMsg[self::ERRNO_INVALID_SIZE_ARG]
+            );
         }
 
         $parameters = $reflectionFunc->getParameters();
@@ -622,8 +639,11 @@ class PHP_Over
         while ($fixedData->valid()) {
             $parameter = $parameters[$fixedData->key()];
 
-            if (!$this->_compareExpectedType($parameter, $fixedData->current())) {
-                throw new DomainException(self::$_errorMsg[self::ERRNO_INVALID_ARG_TYPE]);
+            if (!$this->_compareExpectedType($parameter, $fixedData->current())
+            ) {
+                throw new DomainException(
+                self::$_errorMsg[self::ERRNO_INVALID_ARG_TYPE]
+                );
             }
 
             if ($parameter->isPassedByReference()) {
@@ -634,7 +654,9 @@ class PHP_Over
         }
 
         if (!$this->_addFunction($reflectionData, $fixedData)) {
-            throw new LogicException(self::$_errorMsg[self::ERRNO_OVERLOAD_EXIST]);
+            throw new LogicException(
+            self::$_errorMsg[self::ERRNO_OVERLOAD_EXIST]
+            );
         }
 
         return true;
@@ -679,21 +701,21 @@ class PHP_Over
     }
 
     /**
-     * Внутренний метод вызывающий зарегестрированную функцию с массивом
-     * параметоров, по заданному количеству и значениям типов этих
-     * параметов.
+     * Внутренний метод вызывающий зарегистрированную функцию с массивом
+     * параметров, по заданному количеству и значениям типов этих
+     * параметров.
      *
      * Значения типа NULL, которые могут присутствовать в конце списка
      * переданных аргументов будут вырезаны. Это сделано с целью передавать
      * все аргументы функции заглушки. Смотри demo-2.php
      *
-     * Если зарегестрированная функция ожидает получить аргумент по ссылке, то
+     * Если зарегистрированная функция ожидает получить аргумент по ссылке, то
      * такой аргумент будет передан по ссылке.
      *
      * @param array  $arguments Передаваемые в функцию параметры в виде массива.
      * @param string $hash      Псевдоним функции в виде хэш-строки.
      *
-     * @return mixed Возвращает результат выполнения зарегестрированной функции.
+     * @return mixed Возвращает результат выполнения зарегистрированной функции.
      *
      * @throws BadFunctionCallException Исключение если:
      *                                  1). вызов неопределенной ранее функции.
@@ -719,12 +741,17 @@ class PHP_Over
         $fixedData->hash = $hash;
         $fixedData->size = $fixedData->getSize();
 
-        $pointerId = $this->_getPointer($fixedData,
-            $this->_pointersToOverloadedFunction);
+        $pointerId = $this->_getPointer(
+            $fixedData, $this->_pointersToOverloadedFunction
+        );
 
-        if ($pointerId && $this->_reflectionsOfOverloadedFunctions->contains($pointerId)) {
+        if ($pointerId
+            && $this->_reflectionsOfOverloadedFunctions->contains($pointerId)
+        ) {
 
-            $reflectionData = $this->_reflectionsOfOverloadedFunctions->offsetGet($pointerId);
+            $reflectionData = $this
+                ->_reflectionsOfOverloadedFunctions
+                ->offsetGet($pointerId);
 
             if (isset($reflectionData['ByRef'])) {
                 foreach ($reflectionData['ByRef'] as $num) {
@@ -737,7 +764,9 @@ class PHP_Over
                 $reflectionData[0]->invokeArgs($reflectionData[1], $arguments);
         }
 
-        throw new BadFunctionCallException(self::$_errorMsg[self::ERRNO_BAD_FUNC_CALL]);
+        throw new BadFunctionCallException(
+        self::$_errorMsg[self::ERRNO_BAD_FUNC_CALL]
+        );
     }
 
     /**
@@ -758,12 +787,16 @@ class PHP_Over
     private function _addFunction(array $reflectionData,
         SplFixedArray $fixedData
     ) {
-        $pointerId = $this->_setPointer($fixedData,
-            (object) ++$this->_indexOfPointers);
+        $pointerId = $this->_setPointer(
+            $fixedData, (object) ++$this->_indexOfPointers
+        );
 
         if ($pointerId) {
-            $this->_reflectionsOfOverloadedFunctions->attach($pointerId,
-                $reflectionData);
+            $this
+                ->_reflectionsOfOverloadedFunctions
+                ->attach(
+                    $pointerId, $reflectionData
+            );
             return true;
         }
 
@@ -775,7 +808,7 @@ class PHP_Over
      * перегружена, а также данные отражения, которые связаны с этим указателем.
      *
      * В зависимости от параметра $strictMatchTypes метод находит указатель,
-     * либо группу указаетлей, если он(и) установлены.
+     * либо группу указателей, если он(и) установлены.
      *
      * @param type          $strictMatchTypes Если установлено в FALSE, будут
      *                                        удалены все указатели
@@ -815,8 +848,9 @@ class PHP_Over
 
             foreach (array_diff($keys, $range) as $size) {
                 $fixedData->size = $size;
-                $pointersId      = array_merge($pointersId,
-                    $this->_deletePointer($fixedData, $refPointers));
+                $pointersId      = array_merge(
+                    $pointersId, $this->_deletePointer($fixedData, $refPointers)
+                );
             }
         }
 
@@ -831,19 +865,19 @@ class PHP_Over
 
     /**
      * Внутренний метод предпринимает попытку переопределить ранее
-     * зарегестрированную функцию на новую, и регистрирует ее в случае
+     * зарегистрированную функцию на новую, и регистрирует ее в случае
      * успеха.
      *
-     * Метод удаляет старый указатель на функцию, прежде чем зарегестрирвать
+     * Метод удаляет старый указатель на функцию, прежде чем зарегистрировать
      * новый.
-     * Метод не выбрасывает исключение, а лишь создает его объет,
+     * Метод не выбрасывает исключение, а лишь создает его объект,
      * и возвращает его в вызываемый метод, если старый указатель не найден.
      *
      * Если указатель найден и извлечен, то на его место будет установлен новый
      * указатель, для чего вызов передается в метод _initOverload().
      * Если в методе _initOverload() будет выброшено исключение, то старый
      * указатель будет восстановлен, а пойманный объект исключения
-     * будет возвращет в вызываемый метод.
+     * будет возвращать в вызываемый метод.
      *
      * @param type          $callable  Значение которое может быть вызвано.
      * @param SplFixedArray $fixedData Набор данных, содержащий информацию
@@ -858,8 +892,9 @@ class PHP_Over
      */
     private function _editFunction($callable, SplFixedArray $fixedData)
     {
-        $pointersId = $this->_deletePointer($fixedData,
-            $this->_pointersToOverloadedFunction);
+        $pointersId = $this->_deletePointer(
+            $fixedData, $this->_pointersToOverloadedFunction
+        );
 
         if (empty($pointersId)) {
             return new LogicException(self::$_errorMsg[self::ERRNO_OVERLOAD_NEXIST]);
@@ -877,11 +912,11 @@ class PHP_Over
     }
 
     /**
-     * Метод наход все указатели в переданном массиве, и возвращает
+     * Метод находит все указатели в переданном массиве, и возвращает
      * новый массив содержащий все найденные указатели.
      *
      * @param array $container Массив, в котором будет производиться поиск
-     *                         объетов-указателей.
+     *                         объектов-указателей.
      *
      * @return array Возвращает новый массив содержащий все найденные указатели.
      */
@@ -889,8 +924,9 @@ class PHP_Over
     {
         $ret   = array();
         $aiter = new RecursiveArrayIterator($container);
-        $iiter = new RecursiveIteratorIterator($aiter,
-            RecursiveIteratorIterator::SELF_FIRST);
+        $iiter = new RecursiveIteratorIterator(
+            $aiter, RecursiveIteratorIterator::SELF_FIRST
+        );
 
         foreach ($iiter as $child) {
             if (is_object($child)) {
@@ -996,9 +1032,9 @@ class PHP_Over
      * в массиве $container, и вырезает их, таким образом модифицируя
      * исходный массив.
      *
-     * @param SplFixedArray $fixedData Набор данных, содержащий информацию
-     *                                 о типах и количестве аргументов.
-     * @param array         $container Массив, содержащий указатели.
+     * @param SplFixedArray $fixedData  Набор данных, содержащий информацию
+     *                                  о типах и количестве аргументов.
+     * @param array         &$container Массив, содержащий указатели.
      *
      * @return array Возвращает массив, содержащий все найденные указатели.
      */
@@ -1070,7 +1106,7 @@ class PHP_Over
      * Метод создает отражения функции или метода.
      *
      * Этот метод создает и возвращает массив, первым значением которого
-     * является объект отражения функции или метода. Есди отражается метод,
+     * является объект отражения функции или метода. Если отражается метод,
      * то вторым значением массива будет NULL, если метод статический,
      * или объект, содержащий этот метод.
      *
@@ -1111,8 +1147,10 @@ class PHP_Over
             return false;
         }
 
-        if (!PHP_VERSION_LT54 && $parameter->isCallable() && $typeOfArg !== self::TYPE_OBJECT
-            && $typeOfArg !== self::TYPE_STRING && $typeOfArg !== self::TYPE_ARRAY
+        if (!PHP_VERSION_LT54 && $parameter->isCallable()
+            && $typeOfArg !== self::TYPE_OBJECT
+            && $typeOfArg !== self::TYPE_STRING
+            && $typeOfArg !== self::TYPE_ARRAY
         ) {
             return false;
         }
@@ -1122,12 +1160,12 @@ class PHP_Over
 
     /**
      * Метод структурирует данные, на основе которых будет выполнен поиск
-     * зарегестрированной функции.
+     * зарегистрированной функции.
      *
      * Этот метод получает массив, содержащий значения типов для аргументов
-     * зарегестрированной функции. Массив может быть ассоциативным.
+     * зарегистрированной функции. Массив может быть ассоциативным.
      * В статическом исполнении $hash - это хэш строки псевдонима
-     * зарегестрированной функции.
+     * зарегистрированной функции.
      *
      * @param array       $types Массив, содержащий значения
      *                           типов для аргументов.
@@ -1141,7 +1179,7 @@ class PHP_Over
      *                                      не string.
      * @throws DomainException          Исключение если:
      *                                  1). указанное значение типа
-     *                                      неподдерживается.
+     *                                      не поддерживается.
      */
     private function _getFixedData(array $types, $hash)
     {
@@ -1156,7 +1194,9 @@ class PHP_Over
             $type = current($types);
 
             if (!is_string($type)) {
-                throw new InvalidArgumentException(self::$_errorMsg[self::ERRNO_ARGS_NOT_STRING]);
+                throw new InvalidArgumentException(
+                self::$_errorMsg[self::ERRNO_ARGS_NOT_STRING]
+                );
             }
 
             switch ($type) {
@@ -1189,7 +1229,9 @@ class PHP_Over
                     break;
 
                 default :
-                    throw new DomainException(self::$_errorMsg[self::ERRNO_INVALID_VAL_TYPE]);
+                    throw new DomainException(
+                    self::$_errorMsg[self::ERRNO_INVALID_VAL_TYPE]
+                    );
             }
 
             prev($types);
@@ -1240,9 +1282,9 @@ class PHP_Over
     }
 
     /**
-     * Метод возвращает хэш строки псевдонима для зарегестрированной функции.
+     * Метод возвращает хэш строки псевдонима для зарегистрированной функции.
      *
-     * @param mixed $var Псевдоним для зарегестрированной функции.
+     * @param mixed $var Псевдоним для зарегистрированной функции.
      *
      * @return string Возвращает SHA1-хэш строки псевдонима функции.
      */
