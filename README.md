@@ -1,9 +1,11 @@
 # PHP_Over
+***
 
 > Перегрузка функций — это механизм, который позволяет двум родственным функциям иметь одинаковые имена.
 
 ### Допустим
-Допустим необходимо реализовать функции, которые будут вычислить объем следующих фигур:
+Допустим необходимо реализовать функции, которые будут вычислить объем следующих 
+фигур:
 * куб
 * шар
 * цилиндр
@@ -181,26 +183,34 @@ PHP_Over {
     public mixed invokeArgsTo ( array $param_arr )
     public static mixed invoke ( mixed $alias, [mixed $parameter [, mixed $... ]] )
     public static mixed invokeArgs ( mixed $alias, array $param_arr )
-    public PHP_Over overload ( string|array $types, callable $callback )
+    public PHP_Over overload ( string $type [, string $...], callable $callback )
+    public PHP_Over overload ( array $types, callable $callback )
     public PHP_Over overload ( callable $callback )
     public PHP_Over override ();
+    public PHP_Over override ( string $type [, string $...] );
+    public PHP_Over override ( string $type [, string $...], boolean $strictMatch );
+    public PHP_Over override ( array $types );
+    public PHP_Over override ( array $types, boolean $strictMatch );
     public PHP_Over override ( boolean $strictMatch );
-    public PHP_Over override ( string|array $types );
-    public PHP_Over override ( string|array $types, boolean $strictMatch );
+    public PHP_Over override ( string $type [, string $...], callable $callback );
+    public PHP_Over override ( array $types, callable $callback );
     public PHP_Over override ( callable $callback );
-    public PHP_Over override ( string|array $types, callable $callback );
+    public static boolean load ( mixed $alias, string $type [, string $...], callable $callback )
+    public static boolean load ( mixed $alias, array $types, callable $callback )
     public static boolean load ( mixed $alias, callable $callback )
-    public static boolean load ( mixed $alias, string|array $types, callable $callback )
     public static mixed ride ( mixed $alias );
+    public static mixed ride ( mixed $alias, string $type [, string $...] );
+    public static mixed ride ( mixed $alias, string $type [, string $...], boolean $strictMatch );
+    public static mixed ride ( mixed $alias, array $types );
+    public static mixed ride ( mixed $alias, array $types, boolean $strictMatch );
     public static mixed ride ( mixed $alias, boolean $strictMatch );
-    public static mixed ride ( mixed $alias, string|array $types );
-    public static mixed ride ( mixed $alias, string|array $types, boolean $strictMatch );
+    public static mixed ride ( mixed $alias, string $type [, string $...], callable $callback );
+    public static mixed ride ( mixed $alias, array $types, callable $callback );
     public static mixed ride ( mixed $alias, callable $callback );
-    public static mixed ride ( mixed $alias, string|array $types, callable $callback );
 }
 ```
-
-* * *
+***
 
 Скорость выполнения перегруженной функции ниже, чем вызов реальной функции, поэтому данный класс рекомендовано использовать в ознакомительных, поучительных и развлекательных целях.
-Если PHP_Over класс будет полезен в реальных проектах, мне было бы приятно узнать об этом.
+
+Если **PHP_Over** класс будет полезен в реальных проектах, мне было бы приятно узнать об этом.
